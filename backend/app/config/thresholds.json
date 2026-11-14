@@ -1,0 +1,10 @@
+{
+  "_README": "Seuils médicaux de référence. Ce sont les SEULS qui peuvent déclencher 'critical'. Ne remplir une valeur QUE avec une source vérifiée (organisme + URL). null = pas de seuil.",
+  "heart_rate":   { "critical_low": null, "critical_high": null, "source": "TODO" },
+  "bp_systolic":  { "critical_low": null, "critical_high": null, "source": "TODO" },
+  "bp_diastolic": { "critical_low": null, "critical_high": null, "source": "TODO" },
+  "glucose":      { "critical_low": null, "critical_high": null, "source": "TODO" },
+  "temperature":  { "critical_low": null, "critical_high": null, "source": "TODO" },
+  "sleep_hours":  { "critical_low": null, "critical_high": null, "source": "TODO" },
+  "mood":         { "critical_low": null, "critical_high": null, "source": "TODO" }
+}

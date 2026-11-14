@@ -1,0 +1,6 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+sqlmodel>=0.0.16
+pandas>=2.0
+numpy>=1.26
+scipy>=1.11

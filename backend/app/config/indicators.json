@@ -1,0 +1,67 @@
+{
+  "heart_rate": {
+    "label": "Fréquence cardiaque",
+    "unit": "bpm",
+    "body_zone": "heart",
+    "what": "Nombre de battements du cœur par minute.",
+    "why_in_space": "NASA HRP liste les adaptations cardiovasculaires comme un risque : la microgravité modifie la circulation sanguine et le fonctionnement du cœur et des vaisseaux.",
+    "sources": [
+      "https://www.nasa.gov/hrp/hazards/"
+    ],
+    "watch_direction": "both"
+  },
+  "bp_systolic": {
+    "label": "Tension systolique",
+    "unit": "mmHg",
+    "body_zone": "heart",
+    "what": "Pression dans les artères quand le cœur se contracte.",
+    "why_in_space": "Lié au risque d'adaptations cardiovasculaires identifié par NASA HRP.",
+    "sources": [],
+    "watch_direction": "both"
+  },
+  "bp_diastolic": {
+    "label": "Tension diastolique",
+    "unit": "mmHg",
+    "body_zone": "heart",
+    "what": "Pression dans les artères entre deux battements.",
+    "why_in_space": "Lié au risque d'adaptations cardiovasculaires identifié par NASA HRP.",
+    "sources": [],
+    "watch_direction": "both"
+  },
+  "glucose": {
+    "label": "Glycémie",
+    "unit": "mg/dL",
+    "body_zone": "abdomen",
+    "what": "Taux de sucre dans le sang.",
+    "why_in_space": "NASA HRP identifie le risque d'alimentation inadéquate pendant les missions longues.",
+    "sources": [],
+    "watch_direction": "both"
+  },
+  "temperature": {
+    "label": "Température corporelle",
+    "unit": "°C",
+    "body_zone": "head",
+    "what": "Température interne du corps.",
+    "why_in_space": "NASA HRP identifie un risque de réponses immunitaires altérées (ex. réactivation de virus dormants).",
+    "sources": [],
+    "watch_direction": "both"
+  },
+  "sleep_hours": {
+    "label": "Sommeil",
+    "unit": "h",
+    "body_zone": "brain",
+    "what": "Durée de sommeil sur les dernières 24 h.",
+    "why_in_space": "NASA HRP identifie le risque de sommeil inadéquat et d'horaires irréguliers.",
+    "sources": [],
+    "watch_direction": "down"
+  },
+  "mood": {
+    "label": "Humeur (auto-évaluation)",
+    "unit": "/5",
+    "body_zone": "brain",
+    "what": "Auto-évaluation de 1 (très mauvaise) à 5 (très bonne). Ce n'est pas une échelle clinique.",
+    "why_in_space": "NASA HRP identifie le risque de changements comportementaux liés à l'isolement et au confinement.",
+    "sources": [],
+    "watch_direction": "down"
+  }
+}

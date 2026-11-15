@@ -40,7 +40,9 @@ ASTRONAUTS = [
 
 def main() -> None:
     init_db()
-    start = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0) - timedelta(days=DAYS - 1)
+    # Last simulated point = 1 hour ago, so new manual entries are always the most recent.
+    end = datetime.now(timezone.utc).replace(second=0, microsecond=0) - timedelta(hours=1)
+    start = end - timedelta(days=DAYS - 1)
     with Session(engine) as s:
         s.exec(delete(Measurement))
         s.exec(delete(Astronaut))

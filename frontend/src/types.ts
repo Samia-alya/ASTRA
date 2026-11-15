@@ -1,4 +1,4 @@
-// Must stay in sync with backend/app/models.py and routers/astronauts.py
+// Must stay in sync with backend/app/models.py, routers/astronauts.py and config/indicators.json
 export type Level = 'normal' | 'attention' | 'critical' | 'no_data'
 
 export interface Astronaut {
@@ -40,10 +40,38 @@ export interface StatusResponse {
 
 export interface IndicatorMeta {
   label: string
+  short?: string
   unit: string
   body_zone: string
   what: string
   why_in_space: string
   watch_direction: string
+  guidance?: Partial<Record<Level, string>>
   sources: string[]
+}
+
+/** Display a measurement with a sensible precision for its unit. */
+export function fmt(value: number | null, unit: string): string {
+  if (value === null) return '—'
+  const whole = ['bpm', 'mmHg', 'mg/dL', '/5'].includes(unit)
+  return whole ? String(Math.round(value)) : value.toFixed(1)
+}
+
+/** "Blood pressure (systolic)" -> "blood pressure", for sentences. */
+export function plainName(label: string): string {
+  return label.replace(/\s*\(.*\)\s*/, '').toLowerCase()
+}
+
+export const LEVEL_ORDER: Record<Level, number> = { critical: 0, attention: 1, normal: 2, no_data: 3 }
+export const LEVEL_LABEL: Record<Level, string> = {
+  normal: 'Nominal',
+  attention: 'Watch',
+  critical: 'Critical',
+  no_data: 'No data',
+}
+export const LEVEL_COLOR: Record<Level, string> = {
+  normal: '#8fb8e8',
+  attention: '#f5a524',
+  critical: '#ff6b5e',
+  no_data: '#4a4e59',
 }

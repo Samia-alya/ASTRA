@@ -1,67 +1,107 @@
 {
   "heart_rate": {
     "label": "Heart rate",
+    "short": "Heart",
     "unit": "bpm",
     "body_zone": "heart",
+    "watch_direction": "both",
     "what": "Number of heartbeats per minute.",
-    "why_in_space": "NASA HRP identifies cardiovascular adaptations as a risk: microgravity changes blood circulation and the function of the heart and blood vessels.",
-    "sources": [
-      "https://www.nasa.gov/hrp/hazards/"
-    ],
-    "watch_direction": "both"
+    "why_in_space": "Weightlessness changes blood circulation and how the heart and blood vessels work. NASA's Human Research Program studies these cardiovascular adaptations.",
+    "guidance": {
+      "normal": "Nothing to do. Keep your regular measurement schedule.",
+      "attention": "Rest for 10 minutes and measure again. Note anything unusual you feel.",
+      "critical": "Contact your flight surgeon now."
+    },
+    "sources": ["https://www.nasa.gov/hrp/risks/"]
   },
   "bp_systolic": {
-    "label": "Systolic blood pressure",
+    "label": "Blood pressure (systolic)",
+    "short": "Systolic",
     "unit": "mmHg",
     "body_zone": "heart",
+    "watch_direction": "both",
     "what": "Pressure in the arteries when the heart contracts.",
-    "why_in_space": "Related to the risk of cardiovascular adaptations identified by NASA HRP.",
-    "sources": [],
-    "watch_direction": "both"
+    "why_in_space": "Part of the cardiovascular picture NASA monitors during spaceflight.",
+    "guidance": {
+      "normal": "Nothing to do. Keep your regular measurement schedule.",
+      "attention": "Sit still for a few minutes and measure again.",
+      "critical": "Contact your flight surgeon now."
+    },
+    "sources": ["https://www.nasa.gov/hrp/risks/"]
   },
   "bp_diastolic": {
-    "label": "Diastolic blood pressure",
+    "label": "Blood pressure (diastolic)",
+    "short": "Diastolic",
     "unit": "mmHg",
     "body_zone": "heart",
-    "what": "Pressure in the arteries between heartbeats.",
-    "why_in_space": "Related to the risk of cardiovascular adaptations identified by NASA HRP.",
-    "sources": [],
-    "watch_direction": "both"
+    "watch_direction": "both",
+    "what": "Pressure in the arteries between two heartbeats.",
+    "why_in_space": "Part of the cardiovascular picture NASA monitors during spaceflight.",
+    "guidance": {
+      "normal": "Nothing to do. Keep your regular measurement schedule.",
+      "attention": "Sit still for a few minutes and measure again.",
+      "critical": "Contact your flight surgeon now."
+    },
+    "sources": ["https://www.nasa.gov/hrp/risks/"]
   },
   "glucose": {
     "label": "Blood glucose",
+    "short": "Glucose",
     "unit": "mg/dL",
     "body_zone": "abdomen",
+    "watch_direction": "both",
     "what": "Amount of sugar in the blood.",
-    "why_in_space": "NASA HRP identifies the risk of inadequate nutrition during long missions.",
-    "sources": [],
-    "watch_direction": "both"
+    "why_in_space": "A balanced diet is essential on long missions. NASA lists inadequate food and nutrition as a spaceflight risk.",
+    "guidance": {
+      "normal": "Nothing to do. Keep your regular measurement schedule.",
+      "attention": "Note when you last ate and measure again later.",
+      "critical": "Contact your flight surgeon now."
+    },
+    "sources": ["https://www.nasa.gov/hrp/risks/"]
   },
   "temperature": {
     "label": "Body temperature",
+    "short": "Temp",
     "unit": "°C",
     "body_zone": "head",
+    "watch_direction": "both",
     "what": "Internal body temperature.",
-    "why_in_space": "NASA HRP identifies a risk of altered immune responses (e.g., reactivation of dormant viruses).",
-    "sources": [],
-    "watch_direction": "both"
+    "why_in_space": "The stress of spaceflight can alter immune responses and reactivate dormant viruses (NASA Human Research Program).",
+    "guidance": {
+      "normal": "Nothing to do. Keep your regular measurement schedule.",
+      "attention": "Measure again in an hour and note any symptoms.",
+      "critical": "Contact your flight surgeon now."
+    },
+    "sources": ["https://www.nasa.gov/hrp/risks/"]
   },
   "sleep_hours": {
     "label": "Sleep",
+    "short": "Sleep",
     "unit": "h",
     "body_zone": "brain",
-    "what": "Amount of sleep in the last 24 hours.",
-    "why_in_space": "NASA HRP identifies the risk of inadequate sleep and irregular schedules.",
-    "sources": [],
-    "watch_direction": "down"
+    "watch_direction": "down",
+    "what": "Hours of sleep over the last 24 hours.",
+    "why_in_space": "NASA lists inadequate sleep and irregular schedules among the risks of long missions: they affect alertness, mood and performance.",
+    "guidance": {
+      "normal": "Nothing to do. Keep protecting your rest window.",
+      "attention": "Protect tonight's rest window and log your sleep tomorrow morning. If it stays low, raise it at the next comm pass.",
+      "critical": "Contact your flight surgeon now."
+    },
+    "sources": ["https://www.nasa.gov/hrp/risks/"]
   },
   "mood": {
     "label": "Mood (self-reported)",
+    "short": "Mood",
     "unit": "/5",
     "body_zone": "brain",
-    "what": "A self-assessment from 1 (very poor) to 5 (very good). This is not a clinical scale.",
-    "why_in_space": "NASA HRP identifies the risk of behavioral changes related to isolation and confinement.",
-    "sources": [],
-    "watch_direction": "down"
+    "watch_direction": "down",
+    "what": "Self-assessment from 1 (very low) to 5 (very good). Not a clinical scale.",
+    "why_in_space": "Isolation, confinement and distance from Earth can take a toll on mental health. NASA tracks this as a behavioral health risk.",
+    "guidance": {
+      "normal": "Nothing to do. Keep checking in daily.",
+      "attention": "Write a short note on how you feel. Talking with the crew or the support team on Earth is part of the routine, not an exception.",
+      "critical": "Contact your flight surgeon now."
+    },
+    "sources": ["https://www.nasa.gov/hrp/risks/"]
   }
 }

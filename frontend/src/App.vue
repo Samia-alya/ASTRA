@@ -149,11 +149,7 @@ watch(selected, loadHistory)
 <template>
   <header class="top">
     <div class="brand">
-      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-        <circle cx="14" cy="14" r="12" fill="none" stroke="currentColor" stroke-width="2" />
-        <path d="M4 15 H9 L11.5 9 L15 20 L17.5 13 H24" fill="none" stroke="var(--watch)" stroke-width="2"
-          stroke-linejoin="round" stroke-linecap="round" />
-      </svg>
+      <img src="/favicon.svg?v=2" width="40" height="40" alt="" />
       <span>Houston Pulse</span>
     </div>
     <div class="meta" v-if="status">

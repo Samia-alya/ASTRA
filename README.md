@@ -3,6 +3,8 @@
 Health monitoring software for astronauts on long-duration missions — NASA Space Apps Challenge 2026,
 challenge *Create Health Monitoring Software for Astronauts on Space Missions*.
 
+**Team SpaceMed3** — Samia Al Yahiaoui, Nourhane Anani, Teddy Emmanuel Kana Boumkwo II.
+
 Far from Earth, astronauts must spot changes in their own health. Houston Pulse collects six health
 indicators, compares each one with the astronaut's **own baseline**, flags unusual changes, explains
 **why** in plain language, and says **what to do next** — including when to contact the flight surgeon.
@@ -45,7 +47,9 @@ Space context for each indicator comes from the [NASA Human Research Program ris
 
 ## Demo data
 
-`backend/scripts/generate_data.py` creates 30 days of **simulated** data for three crew members:
+`backend/scripts/generate_data.py` creates 30 days of **simulated** data for three crew members.
+The backend generates it automatically on startup when the database is empty; existing data
+(including manual entries) is never overwritten.
 
 | Crew member | Environment | Story | Overall |
 |---|---|---|---|
@@ -84,16 +88,23 @@ frontend/                      Vue 3 + TypeScript + Vite + Plotly
 
 ## Run it
 
-**Backend** (Python 3.10+):
+**Backend** — Python 3.10+ (the team uses 3.14; see `backend/.python-version`):
 ```bash
 cd backend
 python -m venv .venv
 # Windows: .venv\Scripts\activate   |   macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-python -m scripts.generate_data      # (re)creates the simulated data
 uvicorn app.main:app --reload --port 8000
 python -m pytest -q                  # run the tests
 ```
+On first start the database is empty, so the simulated demo data is generated automatically.
+After that, restarts keep everything (including manually logged measurements).
+
+- **Fresh dates before a demo:** `python -m scripts.generate_data` wipes the database and regenerates
+  the simulated data ending 1 hour ago (manual entries are lost).
+- **Start with an empty database:** set `HOUSTON_PULSE_NO_SEED=1` to disable the auto-seed
+  (e.g. `HOUSTON_PULSE_NO_SEED=1 uvicorn app.main:app --port 8000`).
+
 API docs: http://localhost:8000/docs
 
 **Frontend** (Node 20+):

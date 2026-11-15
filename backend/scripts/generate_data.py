@@ -17,7 +17,7 @@ from sqlmodel import Session, delete, select
 
 from app.config import indicators
 from app.database import engine, init_db
-from app.models import Astronaut, Measurement
+from app.models import Astronaut, AutonomyAction, Measurement, ReportTransmission
 
 DAYS = 30
 SEED = 42
@@ -48,7 +48,7 @@ ASTRONAUTS = [
 
 
 def seed(db_engine: Engine) -> None:
-    """Replace all astronauts and measurements with freshly generated SIMULATED data."""
+    """Replace all astronauts, measurements, checked onboard steps and sent reports with fresh SIMULATED data."""
     rng = np.random.default_rng(SEED)  # same demo story on every run
     # Last simulated point = 1 hour ago, so new manual entries are always the most recent.
     end = datetime.now(timezone.utc).replace(second=0, microsecond=0) - timedelta(hours=1)
@@ -57,6 +57,9 @@ def seed(db_engine: Engine) -> None:
     # so the simulated data also passes the plausibility validation of manual entries.
     steps = {k: m["input"]["step"] for k, m in indicators().items()}
     with Session(db_engine) as s:
+        # Children first: no orphan checks or reports from a previous generation.
+        s.exec(delete(AutonomyAction))
+        s.exec(delete(ReportTransmission))
         s.exec(delete(Measurement))
         s.exec(delete(Astronaut))
         for a in ASTRONAUTS:

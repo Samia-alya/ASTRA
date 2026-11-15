@@ -31,11 +31,40 @@ export interface IndicatorStatus {
   last_timestamp: string | null
 }
 
+/** Earth-independent mode block (backend/app/analysis/autonomy.py). */
+export interface AutonomyState {
+  active: boolean
+  one_way_delay_s: number
+  /** 2 × one-way delay + assumed ground response time. */
+  earliest_reply_s: number
+  reason: string
+}
+
 export interface StatusResponse {
   astronaut: Astronaut
   overall_level: Level
   indicators: IndicatorStatus[]
+  autonomy: AutonomyState
   disclaimer: string
+}
+
+export interface AutonomyStep {
+  index: number
+  text: string
+  checked_at: string | null
+}
+
+export interface AutonomyResponse {
+  autonomy: AutonomyState
+  groups: { indicator: string; label: string; steps: AutonomyStep[] }[]
+  report_sent_at: string | null
+}
+
+export interface EnvironmentConfig {
+  name: string
+  one_way_delay_s: number
+  delay_range_s?: [number, number]
+  source: string
 }
 
 export interface CheckItem {
@@ -45,6 +74,9 @@ export interface CheckItem {
   done: boolean
   last_timestamp: string | null
   hours_since_last: number | null
+  /** Only on indicators re-measured more often in Earth-independent mode. */
+  interval_hours?: number
+  next_due_in_s?: number
 }
 
 export interface ChecksResponse {
@@ -63,6 +95,7 @@ export interface IndicatorMeta {
   watch_direction: string
   guidance?: Partial<Record<Level, string>>
   sources: string[]
+  autonomy_steps?: string[]
   /**
    * Data-entry settings. min/max/step are plausibility limits, NOT medical thresholds, and are never
    * used by the analysis. placeholder/help are examples for the form, not reference values.

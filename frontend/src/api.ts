@@ -1,4 +1,6 @@
-import type { Astronaut, ChecksResponse, IndicatorMeta, Measurement, StatusResponse } from './types'
+import type {
+  Astronaut, AutonomyResponse, ChecksResponse, EnvironmentConfig, IndicatorMeta, Measurement, StatusResponse,
+} from './types'
 
 const BASE = '/api'
 
@@ -7,6 +9,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     ...init,
   })
+  if (res.status === 204) return undefined as T
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.detail ?? `Error ${res.status}`)
@@ -26,4 +29,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ indicator, value }),
     }),
+  environments: () => request<{ environments: Record<string, EnvironmentConfig> }>('/environments'),
+  autonomy: (id: number) => request<AutonomyResponse>(`/astronauts/${id}/autonomy`),
+  setStep: (id: number, indicator: string, step: number, checked: boolean) =>
+    request<unknown>(`/astronauts/${id}/autonomy/actions/${encodeURIComponent(indicator)}/${step}`, {
+      method: checked ? 'PUT' : 'DELETE',
+    }),
+  sendReport: (id: number) =>
+    request<{ report_sent_at: string }>(`/astronauts/${id}/autonomy/report`, { method: 'POST' }),
 }

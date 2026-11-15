@@ -18,6 +18,13 @@
       "attention": "Measure again at rest. The American Heart Association suggests checking resting heart rate first thing in the morning, before getting up.",
       "critical": "Above 100 bpm at rest is defined as tachycardia (AHA). Measure again at rest, then contact your flight surgeon."
     },
+    "autonomy_steps": [
+      "Rest for 5 minutes, then measure your heart rate again to confirm the reading.",
+      "Check related indicators now: blood pressure and body temperature.",
+      "Notify the Crew Medical Officer on board.",
+      "Open the onboard medical procedure for a fast resting heart rate.",
+      "Log any symptoms (palpitations, dizziness, shortness of breath) with the time."
+    ],
     "sources": [
       "https://www.nasa.gov/hrp/risks/",
       "https://www.heart.org/en/health-topics/high-blood-pressure/the-facts-about-high-blood-pressure/all-about-heart-rate-pulse"
@@ -42,6 +49,13 @@
       "attention": "Sit still for a few minutes and measure again.",
       "critical": "The American Heart Association advises waiting five minutes and measuring again. If it is still outside the range, contact your flight surgeon now."
     },
+    "autonomy_steps": [
+      "Sit still for 5 minutes, then measure your blood pressure again to confirm the reading.",
+      "Check related indicators now: heart rate and body temperature.",
+      "Notify the Crew Medical Officer on board.",
+      "Open the onboard medical procedure for high or low blood pressure.",
+      "Log any symptoms (headache, dizziness, vision changes) with the time."
+    ],
     "sources": [
       "https://www.nasa.gov/hrp/risks/",
       "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
@@ -67,6 +81,13 @@
       "attention": "Sit still for a few minutes and measure again.",
       "critical": "The American Heart Association advises waiting five minutes and measuring again. If it is still outside the range, contact your flight surgeon now."
     },
+    "autonomy_steps": [
+      "Sit still for 5 minutes, then measure your blood pressure again to confirm the reading.",
+      "Check related indicators now: heart rate and body temperature.",
+      "Notify the Crew Medical Officer on board.",
+      "Open the onboard medical procedure for high or low blood pressure.",
+      "Log any symptoms (headache, dizziness, vision changes) with the time."
+    ],
     "sources": [
       "https://www.nasa.gov/hrp/risks/",
       "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
@@ -92,6 +113,13 @@
       "attention": "Note when you last ate and measure again later.",
       "critical": "This value is outside the range set by American Diabetes Association guidance. Measure again, then contact your flight surgeon now."
     },
+    "autonomy_steps": [
+      "Measure your blood glucose again in 15 minutes to confirm the reading.",
+      "Check related indicators now: heart rate, body temperature and mood.",
+      "Notify the Crew Medical Officer on board.",
+      "Open the onboard medical procedure for high or low blood glucose.",
+      "Log any symptoms (shakiness, confusion, thirst) and the time of your last meal."
+    ],
     "sources": [
       "https://www.nasa.gov/hrp/risks/",
       "https://diabetes.org/living-with-diabetes/treatment-care/hyperglycemia",
@@ -117,6 +145,13 @@
       "attention": "Measure again in an hour and note any symptoms (rash, cough, chills).",
       "critical": "38 °C or more is a fever by the CDC definition; below 35 °C is an emergency. Contact your flight surgeon now and note any symptoms."
     },
+    "autonomy_steps": [
+      "Measure your temperature again in 15 minutes to confirm the reading.",
+      "Check related indicators now: heart rate and blood pressure.",
+      "Notify the Crew Medical Officer on board.",
+      "Open the onboard medical procedure for fever or low body temperature.",
+      "Log any symptoms (chills, cough, fatigue) with the time."
+    ],
     "sources": [
       "https://www.nasa.gov/hrp/risks/",
       "https://www.cdc.gov/port-health/php/definitions-symptoms-reportable-illness/index.html",

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import type { CheckItem, ChecksResponse } from '../types'
 
 const props = defineProps<{ checks: ChecksResponse }>()
@@ -13,7 +13,32 @@ function ago(h: number | null): string {
   return `${Math.round(h)} h ago`
 }
 
+// Earth-independent mode: some indicators are re-measured every few hours; count down live.
+const now = ref(Date.now())
+const timer = window.setInterval(() => (now.value = Date.now()), 30_000)
+onUnmounted(() => window.clearInterval(timer))
+
+function nextIn(c: CheckItem): number | null {
+  if (c.interval_hours === undefined || !c.last_timestamp) return null
+  return (new Date(c.last_timestamp).getTime() + c.interval_hours * 3_600_000 - now.value) / 1000
+}
+
+function remaining(s: number): string {
+  const m = Math.ceil(s / 60)
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`
+}
+
+function isDone(c: CheckItem): boolean {
+  const n = nextIn(c)
+  return n === null ? c.done : n > 0
+}
+
 function detail(c: CheckItem): string {
+  if (c.interval_hours !== undefined) {
+    const n = nextIn(c)
+    const every = `every ${c.interval_hours} h (Earth-independent mode)`
+    return n !== null && n > 0 ? `Next in ${remaining(n)} · ${every}` : `Due now · ${every}`
+  }
   if (c.done) return `measured ${ago(c.hours_since_last)}`
   return c.hours_since_last === null ? 'Due · never measured' : `Due · ${Math.round(c.hours_since_last)} h`
 }
@@ -28,8 +53,8 @@ function detail(c: CheckItem): string {
     <div class="bar" aria-hidden="true"><span :style="{ width: pct + '%' }" /></div>
 
     <ul aria-labelledby="today-checks-title">
-      <li v-for="c in checks.items" :key="c.indicator" :class="{ due: !c.done }">
-        <svg v-if="c.done" class="icon" viewBox="0 0 20 20" aria-hidden="true">
+      <li v-for="c in checks.items" :key="c.indicator" :class="{ due: !isDone(c), tight: c.interval_hours }">
+        <svg v-if="isDone(c)" class="icon" viewBox="0 0 20 20" aria-hidden="true">
           <circle cx="10" cy="10" r="9" fill="var(--nominal)" />
           <path d="M6 10.5 L8.8 13.2 L14 7.5" fill="none" stroke="var(--on-accent)" stroke-width="2.2"
             stroke-linecap="round" stroke-linejoin="round" />
@@ -40,11 +65,11 @@ function detail(c: CheckItem): string {
             stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         <div class="text">
-          <span class="name">{{ c.label }}<span class="sr-only">: {{ c.done ? 'done' : 'due' }}</span></span>
-          <span class="when">{{ detail(c) }}<span v-if="!c.done && c.hours_since_last !== null" class="sr-only">
+          <span class="name">{{ c.label }}<span class="sr-only">: {{ isDone(c) ? 'done' : 'due' }}</span></span>
+          <span class="when">{{ detail(c) }}<span v-if="!isDone(c) && !c.interval_hours && c.hours_since_last !== null" class="sr-only">
               since the last measurement</span></span>
         </div>
-        <button v-if="!c.done" type="button" class="log" @click="emit('log', c.indicator)">
+        <button v-if="!isDone(c)" type="button" class="log" @click="emit('log', c.indicator)">
           Log now<span class="sr-only"> {{ c.label }}</span>
         </button>
       </li>
@@ -71,6 +96,7 @@ li:last-child { border-bottom: none; }
 .name { font-size: 15px; }
 .when { font-size: 13px; color: var(--muted); }
 li.due .when { color: var(--watch); }
+li.tight .when { color: var(--critical); }
 .log {
   min-height: 44px; padding: 0 14px; border-radius: 12px; cursor: pointer; flex: none;
   background: transparent; color: var(--text); border: 1.5px solid var(--watch); font-weight: 600; font-size: 14px;

@@ -15,6 +15,12 @@ export interface ReportIndicator {
   reasons: string[]
 }
 
+/** Earth-independent mode: onboard steps already checked and when the report was sent. */
+export interface OnboardLog {
+  actions: { indicator: string; step: string; at: string }[]
+  sentAt: string | null
+}
+
 export interface ReportSections {
   crew: string
   mission: string
@@ -25,6 +31,7 @@ export interface ReportSections {
   overallLabel: string
   flagged: ReportIndicator[]
   others: ReportIndicator[]
+  onboard: OnboardLog | null
 }
 
 /** "2026-11-14 09:05 UTC" */
@@ -42,6 +49,7 @@ export function reportSections(
   meta: Record<string, IndicatorMeta>,
   env: EnvironmentInfo,
   generatedAt: Date = new Date(),
+  onboard: OnboardLog | null = null,
 ): ReportSections {
   const toItem = (i: IndicatorStatus): ReportIndicator => ({
     key: i.indicator,
@@ -68,6 +76,7 @@ export function reportSections(
       .sort((x, y) => LEVEL_ORDER[x.level] - LEVEL_ORDER[y.level])
       .map(toItem),
     others: status.indicators.filter((i) => !isFlagged(i)).map(toItem),
+    onboard,
   }
 }
 
@@ -78,8 +87,9 @@ export function buildReport(
   env: EnvironmentInfo,
   note: string,
   generatedAt: Date = new Date(),
+  onboard: OnboardLog | null = null,
 ): string {
-  const r = reportSections(status, meta, env, generatedAt)
+  const r = reportSections(status, meta, env, generatedAt, onboard)
   const lines: string[] = [
     REPORT_TITLE,
     '',
@@ -102,6 +112,12 @@ export function buildReport(
   }
   lines.push('', 'Other indicators')
   for (const o of r.others) lines.push(`- ${o.label}: ${o.value}`)
+  if (r.onboard) {
+    lines.push('', 'Onboard actions (Earth-independent mode)')
+    if (!r.onboard.actions.length) lines.push('No onboard step checked yet.')
+    for (const a of r.onboard.actions) lines.push(`- ${a.at} · ${a.indicator}: ${a.step}`)
+    if (r.onboard.sentAt) lines.push(`Sent to Earth: ${r.onboard.sentAt}`)
+  }
   const trimmed = note.trim()
   if (trimmed) lines.push('', 'Note from crew member', trimmed)
   lines.push('', REPORT_FOOTER)

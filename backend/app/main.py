@@ -29,6 +29,7 @@ app.add_middleware(
 
 app.include_router(astronauts.router)
 app.include_router(indicators.router)
+app.include_router(indicators.env_router)
 
 
 @app.get("/health")

@@ -3,7 +3,12 @@
     "label": "Heart rate",
     "short": "Heart",
     "unit": "bpm",
-    "input": {"min": 20, "max": 250, "step": 1, "note": "Plausibility limit for data entry, not a medical threshold."},
+    "input": {
+      "min": 20, "max": 250, "step": 1,
+      "placeholder": "e.g. 68",
+      "help": "Resting heart rate, in beats per minute.",
+      "note": "Plausibility limit for data entry, not a medical threshold."
+    },
     "body_zone": "heart",
     "watch_direction": "both",
     "what": "Number of heartbeats per minute.",
@@ -22,7 +27,12 @@
     "label": "Blood pressure (systolic)",
     "short": "Systolic",
     "unit": "mmHg",
-    "input": {"min": 50, "max": 260, "step": 1, "note": "Plausibility limit for data entry, not a medical threshold."},
+    "input": {
+      "min": 50, "max": 260, "step": 1,
+      "placeholder": "e.g. 118",
+      "help": "Top number of your blood pressure reading.",
+      "note": "Plausibility limit for data entry, not a medical threshold."
+    },
     "body_zone": "heart",
     "watch_direction": "both",
     "what": "Pressure in the arteries when the heart contracts.",
@@ -42,7 +52,12 @@
     "label": "Blood pressure (diastolic)",
     "short": "Diastolic",
     "unit": "mmHg",
-    "input": {"min": 30, "max": 160, "step": 1, "note": "Plausibility limit for data entry, not a medical threshold."},
+    "input": {
+      "min": 30, "max": 160, "step": 1,
+      "placeholder": "e.g. 76",
+      "help": "Bottom number of your blood pressure reading.",
+      "note": "Plausibility limit for data entry, not a medical threshold."
+    },
     "body_zone": "heart",
     "watch_direction": "both",
     "what": "Pressure in the arteries between two heartbeats.",
@@ -62,7 +77,12 @@
     "label": "Blood glucose",
     "short": "Glucose",
     "unit": "mg/dL",
-    "input": {"min": 20, "max": 600, "step": 1, "note": "Plausibility limit for data entry, not a medical threshold."},
+    "input": {
+      "min": 20, "max": 600, "step": 1,
+      "placeholder": "e.g. 92",
+      "help": "Blood glucose in mg/dL.",
+      "note": "Plausibility limit for data entry, not a medical threshold."
+    },
     "body_zone": "abdomen",
     "watch_direction": "both",
     "what": "Amount of sugar in the blood.",
@@ -82,7 +102,12 @@
     "label": "Body temperature",
     "short": "Temp",
     "unit": "°C",
-    "input": {"min": 30.0, "max": 43.0, "step": 0.1, "note": "Plausibility limit for data entry, not a medical threshold."},
+    "input": {
+      "min": 30.0, "max": 43.0, "step": 0.1,
+      "placeholder": "e.g. 36.8",
+      "help": "Body temperature in degrees Celsius.",
+      "note": "Plausibility limit for data entry, not a medical threshold."
+    },
     "body_zone": "head",
     "watch_direction": "both",
     "what": "Internal body temperature.",
@@ -102,7 +127,12 @@
     "label": "Sleep",
     "short": "Sleep",
     "unit": "h",
-    "input": {"min": 0, "max": 24, "step": 0.25, "note": "Plausibility limit for data entry, not a medical threshold."},
+    "input": {
+      "min": 0, "max": 24, "step": 0.25,
+      "placeholder": "e.g. 7.5",
+      "help": "Hours slept in the last 24 h. 7.5 = 7 h 30 min.",
+      "note": "Plausibility limit for data entry, not a medical threshold."
+    },
     "body_zone": "brain",
     "watch_direction": "down",
     "what": "Hours of sleep over the last 24 hours.",
@@ -121,7 +151,11 @@
     "label": "Mood (self-reported)",
     "short": "Mood",
     "unit": "/5",
-    "input": {"min": 1, "max": 5, "step": 1, "note": "Plausibility limit for data entry, not a medical threshold."},
+    "input": {
+      "min": 1, "max": 5, "step": 1,
+      "help": "How do you feel right now?",
+      "note": "Plausibility limit for data entry, not a medical threshold."
+    },
     "body_zone": "brain",
     "watch_direction": "down",
     "what": "Self-assessment from 1 (very low) to 5 (very good). Not a clinical scale.",

@@ -126,7 +126,8 @@ does not match the step, or has a timestamp more than 5 minutes in the future.
 | Sleep | 0–24 h | 0.25 |
 | Mood (self-reported) | 1–5 | 1 (whole number) |
 
-The limits live in the `input` object of each indicator in `backend/app/config/indicators.json`.
+The limits live in the `input` object of each indicator in `backend/app/config/indicators.json`, together
+with the form's `placeholder` and `help` text (examples for the form, not reference values).
 The simulated demo data is rounded to these steps, so it passes the same checks.
 
 ## Next steps

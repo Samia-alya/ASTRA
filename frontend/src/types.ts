@@ -63,8 +63,11 @@ export interface IndicatorMeta {
   watch_direction: string
   guidance?: Partial<Record<Level, string>>
   sources: string[]
-  /** Plausibility limits for data entry. NOT medical thresholds; never used by the analysis. */
-  input?: { min: number; max: number; step: number; note: string }
+  /**
+   * Data-entry settings. min/max/step are plausibility limits, NOT medical thresholds, and are never
+   * used by the analysis. placeholder/help are examples for the form, not reference values.
+   */
+  input?: { min: number; max: number; step: number; note: string; placeholder?: string; help?: string }
 }
 
 /** Display a measurement with a sensible precision for its unit. */

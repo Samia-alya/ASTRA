@@ -15,10 +15,10 @@ const history = ref<Measurement[]>([])
 const error = ref('')
 
 const OVERALL = {
-  normal: 'Tout va bien',
-  attention: 'Certains indicateurs demandent ton attention',
-  critical: 'Contacte le médecin de vol',
-  no_data: 'Pas encore de données',
+  normal: 'All good',
+  attention: 'Some indicators need your attention',
+  critical: 'Contact your flight surgeon',
+  no_data: 'No data yet',
 }
 
 const selectedStatus = computed(() => status.value?.indicators.find((i) => i.indicator === selected.value) ?? null)
@@ -46,7 +46,7 @@ onMounted(async () => {
     ;[astronauts.value, meta.value] = await Promise.all([api.astronauts(), api.indicators()])
     astronautId.value = astronauts.value[0]?.id ?? null
   } catch {
-    error.value = "Impossible de joindre l'API. Le backend tourne-t-il sur le port 8000 ?"
+    error.value = "Unable to reach the API. Is the backend running on port 8000?"
   }
 })
 
@@ -67,7 +67,7 @@ watch(selected, loadHistory)
   <main v-if="status">
     <section class="overall" :class="status.overall_level">
       <strong>{{ OVERALL[status.overall_level] }}</strong>
-      <span>Jour {{ status.astronaut.mission_day }} · {{ status.astronaut.environment }}</span>
+      <span>Day {{ status.astronaut.mission_day }} · {{ status.astronaut.environment }}</span>
     </section>
 
     <section class="grid">
@@ -79,15 +79,15 @@ watch(selected, loadHistory)
 
     <section class="detail" v-if="selectedStatus">
       <div class="panel">
-        <span v-if="hasSimulated" class="sim">DONNÉES SIMULÉES</span>
+        <span v-if="hasSimulated" class="sim">SIMULATED DATA</span>
         <HistoryChart :data="history" :label="selectedStatus.label" :unit="selectedStatus.unit"
           :baseline="selectedStatus.baseline" />
       </div>
       <div class="panel guide" v-if="meta[selectedStatus.indicator]">
         <h3>{{ selectedStatus.label }}</h3>
-        <p><b>Ce que ça mesure :</b> {{ meta[selectedStatus.indicator]!.what }}</p>
-        <p><b>Pourquoi c'est important dans l'espace :</b> {{ meta[selectedStatus.indicator]!.why_in_space }}</p>
-        <!-- TODO (Membre 3) : section "Que faire ?" selon le niveau, basée sur des sources fiables -->
+        <p><b>What it measures:</b> {{ meta[selectedStatus.indicator]!.what }}</p>
+        <p><b>Why it matters in space:</b> {{ meta[selectedStatus.indicator]!.why_in_space }}</p>
+        <!-- TODO (Member 3): "What to do?" section by level, based on reliable sources -->
       </div>
     </section>
 

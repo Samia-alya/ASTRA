@@ -9,13 +9,13 @@ Health monitoring software for astronauts on long-duration missions — NASA Spa
 ```
 backend/                 FastAPI + SQLite (Python)
   app/main.py            app entry point, CORS, routers
-  app/models.py          tables: Astronaut, Measurement           (Membre 2)
-  app/routers/           REST endpoints                           (Membre 2)
-  app/analysis/anomaly.py  baseline + trend + thresholds           (Membre 1)
+  app/models.py          tables: Astronaut, Measurement           (Member 2)
+  app/routers/           REST endpoints                           (Member 2)
+  app/analysis/anomaly.py  baseline + trend + thresholds           (Member 1)
   app/config/indicators.json   indicator metadata + explanations
   app/config/thresholds.json   documented medical thresholds (sources required!)
-  scripts/generate_data.py     simulated demo data                (Membre 1)
-frontend/                Vue 3 + TypeScript + Vite + Plotly       (Membre 3)
+  scripts/generate_data.py     simulated demo data                (Member 1)
+frontend/                Vue 3 + TypeScript + Vite + Plotly       (Member 3)
   src/api.ts             all API calls
   src/types.ts           types shared with the backend contract
   src/components/        IndicatorCard, HistoryChart, MeasurementForm

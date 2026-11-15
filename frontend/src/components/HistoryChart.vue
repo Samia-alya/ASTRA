@@ -15,7 +15,7 @@ function draw() {
   ]
   if (props.baseline !== null && x.length) {
     traces.push({ x: [x[0], x[x.length - 1]], y: [props.baseline, props.baseline], type: 'scatter',
-      mode: 'lines', name: 'Ta référence', line: { dash: 'dot', color: '#9aa4b2' } })
+      mode: 'lines', name: 'Your baseline', line: { dash: 'dot', color: '#9aa4b2' } })
   }
   Plotly.react(el.value, traces as Plotly.Data[], {
     title: { text: `${props.label} (${props.unit})` },

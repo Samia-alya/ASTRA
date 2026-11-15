@@ -1,5 +1,5 @@
 {
-  "_README": "Seuils médicaux de référence. Ce sont les SEULS qui peuvent déclencher 'critical'. Ne remplir une valeur QUE avec une source vérifiée (organisme + URL). null = pas de seuil.",
+  "_README": "Medical reference thresholds. These are the ONLY thresholds that can trigger 'critical'. Fill in a value ONLY with a verified source (organization + URL). null = no threshold.",
   "heart_rate":   { "critical_low": null, "critical_high": null, "source": "TODO" },
   "bp_systolic":  { "critical_low": null, "critical_high": null, "source": "TODO" },
   "bp_diastolic": { "critical_low": null, "critical_high": null, "source": "TODO" },

@@ -1,66 +1,66 @@
 {
   "heart_rate": {
-    "label": "Fréquence cardiaque",
+    "label": "Heart rate",
     "unit": "bpm",
     "body_zone": "heart",
-    "what": "Nombre de battements du cœur par minute.",
-    "why_in_space": "NASA HRP liste les adaptations cardiovasculaires comme un risque : la microgravité modifie la circulation sanguine et le fonctionnement du cœur et des vaisseaux.",
+    "what": "Number of heartbeats per minute.",
+    "why_in_space": "NASA HRP identifies cardiovascular adaptations as a risk: microgravity changes blood circulation and the function of the heart and blood vessels.",
     "sources": [
       "https://www.nasa.gov/hrp/hazards/"
     ],
     "watch_direction": "both"
   },
   "bp_systolic": {
-    "label": "Tension systolique",
+    "label": "Systolic blood pressure",
     "unit": "mmHg",
     "body_zone": "heart",
-    "what": "Pression dans les artères quand le cœur se contracte.",
-    "why_in_space": "Lié au risque d'adaptations cardiovasculaires identifié par NASA HRP.",
+    "what": "Pressure in the arteries when the heart contracts.",
+    "why_in_space": "Related to the risk of cardiovascular adaptations identified by NASA HRP.",
     "sources": [],
     "watch_direction": "both"
   },
   "bp_diastolic": {
-    "label": "Tension diastolique",
+    "label": "Diastolic blood pressure",
     "unit": "mmHg",
     "body_zone": "heart",
-    "what": "Pression dans les artères entre deux battements.",
-    "why_in_space": "Lié au risque d'adaptations cardiovasculaires identifié par NASA HRP.",
+    "what": "Pressure in the arteries between heartbeats.",
+    "why_in_space": "Related to the risk of cardiovascular adaptations identified by NASA HRP.",
     "sources": [],
     "watch_direction": "both"
   },
   "glucose": {
-    "label": "Glycémie",
+    "label": "Blood glucose",
     "unit": "mg/dL",
     "body_zone": "abdomen",
-    "what": "Taux de sucre dans le sang.",
-    "why_in_space": "NASA HRP identifie le risque d'alimentation inadéquate pendant les missions longues.",
+    "what": "Amount of sugar in the blood.",
+    "why_in_space": "NASA HRP identifies the risk of inadequate nutrition during long missions.",
     "sources": [],
     "watch_direction": "both"
   },
   "temperature": {
-    "label": "Température corporelle",
+    "label": "Body temperature",
     "unit": "°C",
     "body_zone": "head",
-    "what": "Température interne du corps.",
-    "why_in_space": "NASA HRP identifie un risque de réponses immunitaires altérées (ex. réactivation de virus dormants).",
+    "what": "Internal body temperature.",
+    "why_in_space": "NASA HRP identifies a risk of altered immune responses (e.g., reactivation of dormant viruses).",
     "sources": [],
     "watch_direction": "both"
   },
   "sleep_hours": {
-    "label": "Sommeil",
+    "label": "Sleep",
     "unit": "h",
     "body_zone": "brain",
-    "what": "Durée de sommeil sur les dernières 24 h.",
-    "why_in_space": "NASA HRP identifie le risque de sommeil inadéquat et d'horaires irréguliers.",
+    "what": "Amount of sleep in the last 24 hours.",
+    "why_in_space": "NASA HRP identifies the risk of inadequate sleep and irregular schedules.",
     "sources": [],
     "watch_direction": "down"
   },
   "mood": {
-    "label": "Humeur (auto-évaluation)",
+    "label": "Mood (self-reported)",
     "unit": "/5",
     "body_zone": "brain",
-    "what": "Auto-évaluation de 1 (très mauvaise) à 5 (très bonne). Ce n'est pas une échelle clinique.",
-    "why_in_space": "NASA HRP identifie le risque de changements comportementaux liés à l'isolement et au confinement.",
+    "what": "A self-assessment from 1 (very poor) to 5 (very good). This is not a clinical scale.",
+    "why_in_space": "NASA HRP identifies the risk of behavioral changes related to isolation and confinement.",
     "sources": [],
     "watch_direction": "down"
   }

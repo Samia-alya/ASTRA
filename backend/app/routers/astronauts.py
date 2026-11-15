@@ -94,6 +94,6 @@ def get_status(astronaut_id: int, session: Session = Depends(get_session)):
         "astronaut": astro,
         "overall_level": overall,
         "indicators": result,
-        "disclaimer": "Outil d'aide à la surveillance. Ce n'est pas un diagnostic médical : "
-        "en cas de doute, contacter le médecin de vol (flight surgeon).",
+        "disclaimer": "Monitoring aid only. This is not a medical diagnosis: "
+        "if in doubt, contact your flight surgeon.",
     }

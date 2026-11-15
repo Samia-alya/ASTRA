@@ -78,10 +78,10 @@ def analyse(indicator: str, df: pd.DataFrame) -> IndicatorStatus:
             z = (status.value - mean) / std
             if abs(z) >= Z_ATTENTION and _is_watched(direction, z):
                 status.level = "attention"
-                where = "au-dessus" if z > 0 else "en dessous"
+                where = "well above" if z > 0 else "well below"
                 status.reasons.append(
-                    f"Valeur actuelle {status.value:g} nettement {where} de ta référence "
-                    f"personnelle ({mean:.1f})."
+                    f"Current value {status.value:g} is {where} your personal baseline "
+                    f"({mean:.1f})."
                 )
 
     # --- Layer 1b: sustained trend over the recent window ---------------
@@ -93,9 +93,9 @@ def analyse(indicator: str, df: pd.DataFrame) -> IndicatorStatus:
             if _is_watched(direction, reg.slope):
                 if status.level == "normal":
                     status.level = "attention"
-                sens = "hausse" if reg.slope > 0 else "baisse"
+                sens = "Rising" if reg.slope > 0 else "Falling"
                 status.reasons.append(
-                    f"Tendance à la {sens} sur {RECENT_DAYS} jours ({reg.slope:+.2f} par jour)."
+                    f"{sens} trend over {RECENT_DAYS} days ({reg.slope:+.2f} per day)."
                 )
 
     # --- Layer 2: documented thresholds (only source of "critical") -----
@@ -103,11 +103,11 @@ def analyse(indicator: str, df: pd.DataFrame) -> IndicatorStatus:
     low, high, src = t.get("critical_low"), t.get("critical_high"), t.get("source")
     if low is not None and status.value < low:
         status.level = "critical"
-        status.reasons.append(f"Sous le seuil de référence {low} (source : {src}).")
+        status.reasons.append(f"Below the reference threshold {low} (source: {src}).")
     if high is not None and status.value > high:
         status.level = "critical"
-        status.reasons.append(f"Au-dessus du seuil de référence {high} (source : {src}).")
+        status.reasons.append(f"Above the reference threshold {high} (source: {src}).")
 
     if status.level == "normal":
-        status.reasons.append("Aucun changement inhabituel détecté.")
+        status.reasons.append("No unusual change detected.")
     return status

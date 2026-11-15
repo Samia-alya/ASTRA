@@ -29,11 +29,11 @@ SIM = {
 
 # Demo scenarios: (indicator, drift per day applied over the last N days)
 ASTRONAUTS = [
-    {"name": "Cmdr. A. Rivera", "mission": "Artemis Base Camp (simulé)", "environment": "lunar_base",
+    {"name": "Cmdr. A. Rivera", "mission": "Artemis Base Camp (simulated)", "environment": "lunar_base",
      "scenario": {"sleep_hours": (-0.3, 7), "mood": (-0.25, 7), "heart_rate": (1.5, 6)}},
-    {"name": "Dr. K. Tanaka", "mission": "ISS Expedition (simulé)", "environment": "station",
+    {"name": "Dr. K. Tanaka", "mission": "ISS Expedition (simulated)", "environment": "station",
      "scenario": {}},
-    {"name": "Eng. L. Moreau", "mission": "Mars Transit (simulé)", "environment": "mars_transit",
+    {"name": "Eng. L. Moreau", "mission": "Mars Transit (simulated)", "environment": "mars_transit",
      "scenario": {"bp_systolic": (2.0, 5)}},
 ]
 

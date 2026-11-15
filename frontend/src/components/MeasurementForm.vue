@@ -14,7 +14,7 @@ const busy = ref(false)
 async function submit() {
   error.value = ''
   if (value.value === null || Number.isNaN(value.value)) {
-    error.value = 'Entre une valeur numérique.'
+    error.value = 'Enter a numeric value.'
     return
   }
   busy.value = true
@@ -32,12 +32,12 @@ async function submit() {
 
 <template>
   <form class="form" @submit.prevent="submit">
-    <h3>Nouvelle mesure</h3>
+    <h3>New measurement</h3>
     <select v-model="indicator">
       <option v-for="(meta, key) in indicators" :key="key" :value="key">{{ meta.label }} ({{ meta.unit }})</option>
     </select>
-    <input v-model.number="value" type="number" step="any" placeholder="Valeur" />
-    <button :disabled="busy">Enregistrer</button>
+    <input v-model.number="value" type="number" step="any" placeholder="Value" />
+    <button :disabled="busy">Save</button>
     <p v-if="error" class="error">{{ error }}</p>
   </form>
 </template>

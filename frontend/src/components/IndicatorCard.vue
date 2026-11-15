@@ -4,7 +4,7 @@ import type { IndicatorStatus } from '../types'
 defineProps<{ status: IndicatorStatus; selected: boolean }>()
 defineEmits<{ select: [] }>()
 
-const LEVEL_LABEL = { normal: 'Normal', attention: 'Attention', critical: 'Critique', no_data: 'Aucune donnée' }
+const LEVEL_LABEL = { normal: 'Normal', attention: 'Attention', critical: 'Critical', no_data: 'No data' }
 const TREND_ICON = { up: '↗', down: '↘', stable: '→' }
 </script>
 
@@ -18,7 +18,7 @@ const TREND_ICON = { up: '↗', down: '↘', stable: '→' }
       {{ status.value ?? '—' }} <small>{{ status.unit }}</small>
       <span class="trend">{{ TREND_ICON[status.trend] }}</span>
     </div>
-    <div class="baseline" v-if="status.baseline !== null">Ta référence : {{ status.baseline }} {{ status.unit }}</div>
+    <div class="baseline" v-if="status.baseline !== null">Your baseline: {{ status.baseline }} {{ status.unit }}</div>
     <ul class="reasons">
       <li v-for="r in status.reasons" :key="r">{{ r }}</li>
     </ul>

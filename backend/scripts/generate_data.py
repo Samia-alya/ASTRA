@@ -30,7 +30,9 @@ SIM = {
 # Demo scenarios: (indicator, drift per day applied over the last N days)
 ASTRONAUTS = [
     {"name": "Cmdr. A. Rivera", "mission": "Artemis Base Camp (simulated)", "environment": "lunar_base",
-     "scenario": {"sleep_hours": (-0.3, 7), "mood": (-0.25, 7), "heart_rate": (1.5, 6)}},
+     "scenario": {"sleep_hours": (-0.3, 7), "mood": (-0.25, 7), "heart_rate": (1.5, 6)},
+     # Today's checks demo: these were not measured on the last simulated day.
+     "skip_last_day": {"glucose", "temperature"}},
     {"name": "Dr. K. Tanaka", "mission": "ISS Expedition (simulated)", "environment": "station",
      "scenario": {}},
     {"name": "Eng. L. Moreau", "mission": "Mars Transit (simulated)", "environment": "mars_transit",
@@ -62,6 +64,9 @@ def main() -> None:
                             v += slope * (days_in + 1)
                     if ind == "mood":
                         v = float(np.clip(round(v), 1, 5))
+                    # Skip after drawing the value, so every other value stays identical.
+                    if d == DAYS - 1 and ind in a.get("skip_last_day", ()):
+                        continue
                     s.add(Measurement(astronaut_id=astro.id, indicator=ind, value=round(float(v), 2),
                                       timestamp=ts, source="simulated"))
         s.commit()

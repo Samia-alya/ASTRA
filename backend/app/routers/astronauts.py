@@ -5,9 +5,10 @@ from typing import Optional
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from app.analysis.anomaly import analyse
+from app.analysis.checks import compute_checks
 from app.config import indicators
 from app.database import get_session
 from app.models import Astronaut, Measurement, MeasurementCreate
@@ -69,6 +70,19 @@ def add_measurement(
     session.commit()
     session.refresh(m)
     return m
+
+
+@router.get("/{astronaut_id}/checks")
+def get_checks(astronaut_id: int, session: Session = Depends(get_session)):
+    """Today's checks: which indicators were measured in the last 24 h."""
+    _get_astronaut(astronaut_id, session)
+    rows = session.exec(
+        select(Measurement.indicator, func.max(Measurement.timestamp))
+        .where(Measurement.astronaut_id == astronaut_id)
+        .group_by(Measurement.indicator)
+    ).all()
+    latest = {ind: _as_utc(ts) for ind, ts in rows if ts is not None}
+    return compute_checks(latest, indicators())
 
 
 @router.get("/{astronaut_id}/status")

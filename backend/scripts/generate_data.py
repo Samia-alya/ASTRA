@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 import numpy as np
 from sqlmodel import Session, SQLModel, delete
 
+from app.config import indicators
 from app.database import engine, init_db
 from app.models import Astronaut, Measurement
 
@@ -46,6 +47,9 @@ def main() -> None:
     # Last simulated point = 1 hour ago, so new manual entries are always the most recent.
     end = datetime.now(timezone.utc).replace(second=0, microsecond=0) - timedelta(hours=1)
     start = end - timedelta(days=DAYS - 1)
+    # Round to each indicator's entry step (whole bpm, 0.1 °C, quarter hours…) like a real device,
+    # so the simulated data also passes the plausibility validation of manual entries.
+    steps = {k: m["input"]["step"] for k, m in indicators().items()}
     with Session(engine) as s:
         s.exec(delete(Measurement))
         s.exec(delete(Astronaut))
@@ -67,7 +71,8 @@ def main() -> None:
                     # Skip after drawing the value, so every other value stays identical.
                     if d == DAYS - 1 and ind in a.get("skip_last_day", ()):
                         continue
-                    s.add(Measurement(astronaut_id=astro.id, indicator=ind, value=round(float(v), 2),
+                    v = round(round(float(v) / steps[ind]) * steps[ind], 2)
+                    s.add(Measurement(astronaut_id=astro.id, indicator=ind, value=v,
                                       timestamp=ts, source="simulated"))
         s.commit()
     print(f"Generated {DAYS} days of SIMULATED data for {len(ASTRONAUTS)} astronauts.")

@@ -12,6 +12,7 @@ from app.analysis.checks import compute_checks
 from app.config import indicators
 from app.database import get_session
 from app.models import Astronaut, Measurement, MeasurementCreate
+from app.validation import validate_timestamp, validate_value
 
 router = APIRouter(prefix="/astronauts", tags=["astronauts"])
 
@@ -57,13 +58,19 @@ def add_measurement(
     astronaut_id: int, payload: MeasurementCreate, session: Session = Depends(get_session)
 ):
     _get_astronaut(astronaut_id, session)
-    if payload.indicator not in indicators():
+    meta = indicators().get(payload.indicator)
+    if meta is None:
         raise HTTPException(422, f"Unknown indicator '{payload.indicator}'")
+    # Plausibility limits for data entry only, not medical thresholds (see app/validation.py).
+    ts = _as_utc(payload.timestamp) if payload.timestamp else None
+    problem = validate_value(meta, payload.value) or validate_timestamp(ts)
+    if problem:
+        raise HTTPException(422, problem)
     m = Measurement(
         astronaut_id=astronaut_id,
         indicator=payload.indicator,
         value=payload.value,
-        timestamp=_as_utc(payload.timestamp) if payload.timestamp else datetime.now(timezone.utc),
+        timestamp=ts or datetime.now(timezone.utc),
         source="manual",
     )
     session.add(m)

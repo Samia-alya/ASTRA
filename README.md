@@ -103,8 +103,31 @@ App: http://localhost:5173
 | GET | `/astronauts/{id}/status` | per indicator: `value`, `baseline`, `level`, `trend`, `reasons[]`, plus `overall_level` |
 | GET | `/astronauts/{id}/measurements?indicator=&start=&end=` | history |
 | GET | `/astronauts/{id}/checks` | today's checks: per indicator `done` (measured in the last 24 h), `last_timestamp`, `hours_since_last`, plus `done_count` / `total` |
-| POST | `/astronauts/{id}/measurements` | body `{indicator, value, timestamp?}`, stored with `source: "manual"` |
+| POST | `/astronauts/{id}/measurements` | body `{indicator, value, timestamp?}`, stored with `source: "manual"`; 422 if the value fails the [input validation](#input-validation) |
 | GET | `/indicators` | metadata, explanations, guidance, sources |
+
+## Input validation
+
+Manual entries are checked before they are stored (`backend/app/validation.py`), and the form checks them
+as you type. A value is rejected with HTTP 422 if it is not a finite number, is outside the range below,
+does not match the step, or has a timestamp more than 5 minutes in the future.
+
+> **These are plausibility limits for data entry, not medical thresholds.** They only catch typos and
+> impossible values (e.g. a heart rate of 720). They never affect the analysis levels, which come only from
+> the personal baseline and the documented thresholds in `thresholds.json`.
+
+| Indicator | Allowed range | Step |
+|---|---|---|
+| Heart rate | 20–250 bpm | 1 |
+| Blood pressure (systolic) | 50–260 mmHg | 1 |
+| Blood pressure (diastolic) | 30–160 mmHg | 1 |
+| Blood glucose | 20–600 mg/dL | 1 |
+| Body temperature | 30.0–43.0 °C | 0.1 |
+| Sleep | 0–24 h | 0.25 |
+| Mood (self-reported) | 1–5 | 1 (whole number) |
+
+The limits live in the `input` object of each indicator in `backend/app/config/indicators.json`.
+The simulated demo data is rounded to these steps, so it passes the same checks.
 
 ## Next steps
 

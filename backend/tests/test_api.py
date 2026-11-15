@@ -2,12 +2,15 @@
 
 Run from backend/:  python -m pytest -q
 """
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, create_engine
 
 import app.database as database
 from app.main import app
+from app.validation import validate_value
 
 
 @pytest.fixture()
@@ -93,3 +96,59 @@ def test_checks_unknown_astronaut(client):
 def test_rivera_still_attention_on_scenario(client):
     levels = {i["indicator"]: i["level"] for i in client.get("/astronauts/1/status").json()["indicators"]}
     assert levels["sleep_hours"] == levels["mood"] == levels["heart_rate"] == "attention"
+
+
+# --- Plausibility validation (data-entry limits, NOT medical thresholds) ---
+
+VALID = {"heart_rate": 72, "bp_systolic": 120, "bp_diastolic": 80, "glucose": 95,
+         "temperature": 36.8, "sleep_hours": 7.25, "mood": 4}
+
+
+def _post(client, indicator, value, **extra):
+    return client.post("/astronauts/2/measurements", json={"indicator": indicator, "value": value, **extra})
+
+
+@pytest.mark.parametrize("indicator,value", VALID.items())
+def test_valid_value_accepted(client, indicator, value):
+    assert _post(client, indicator, value).status_code == 201
+
+
+@pytest.mark.parametrize("indicator,value,message", [
+    ("heart_rate", 720, "Heart rate must be between 20 and 250 bpm."),
+    ("temperature", 50, "Body temperature must be between 30.0 and 43.0 °C."),
+    ("mood", 6, "Mood (self-reported) must be between 1 and 5."),
+    ("mood", 3.5, "Mood (self-reported) must be a whole number."),
+    ("sleep_hours", 25, "Sleep must be between 0 and 24 h."),
+    ("sleep_hours", 7.3, "Sleep must be in steps of 0.25 h."),
+])
+def test_implausible_value_rejected(client, indicator, value, message):
+    r = _post(client, indicator, value)
+    assert r.status_code == 422 and r.json()["detail"] == message
+
+
+def test_limits_are_inclusive_and_float_tolerant(client):
+    assert _post(client, "temperature", 43.0).status_code == 201
+    assert _post(client, "temperature", 36.6).status_code == 201  # 36.6 is not exact in binary
+    assert _post(client, "sleep_hours", 0).status_code == 201
+
+
+@pytest.mark.parametrize("raw", ["NaN", "Infinity", "-Infinity"])
+def test_non_finite_value_rejected(client, raw):
+    r = client.post("/astronauts/2/measurements", content='{"indicator": "heart_rate", "value": %s}' % raw,
+                    headers={"Content-Type": "application/json"})
+    assert r.status_code == 422
+
+
+def test_future_timestamp_rejected(client):
+    future = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    r = _post(client, "heart_rate", 72, timestamp=future)
+    assert r.status_code == 422 and "future" in r.json()["detail"]
+    soon = (datetime.now(timezone.utc) + timedelta(minutes=2)).isoformat()
+    assert _post(client, "heart_rate", 72, timestamp=soon).status_code == 201
+
+
+def test_generated_demo_data_is_plausible(client):
+    meta = client.get("/indicators").json()
+    for a in client.get("/astronauts").json():
+        for m in client.get(f"/astronauts/{a['id']}/measurements").json():
+            assert validate_value(meta[m["indicator"]], m["value"]) is None, m

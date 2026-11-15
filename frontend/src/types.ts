@@ -63,6 +63,8 @@ export interface IndicatorMeta {
   watch_direction: string
   guidance?: Partial<Record<Level, string>>
   sources: string[]
+  /** Plausibility limits for data entry. NOT medical thresholds; never used by the analysis. */
+  input?: { min: number; max: number; step: number; note: string }
 }
 
 /** Display a measurement with a sensible precision for its unit. */

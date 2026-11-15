@@ -34,7 +34,8 @@ ASTRONAUTS = [
     {"name": "Dr. K. Tanaka", "mission": "ISS Expedition (simulated)", "environment": "station",
      "scenario": {}},
     {"name": "Eng. L. Moreau", "mission": "Mars Transit (simulated)", "environment": "mars_transit",
-     "scenario": {"bp_systolic": (2.0, 5)}},
+     # Mars transit: rising temperature (crosses the documented fever threshold) + rising BP
+     "scenario": {"temperature": (0.5, 3), "bp_systolic": (2.0, 5)}},
 ]
 
 

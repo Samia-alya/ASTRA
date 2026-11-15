@@ -9,10 +9,13 @@
     "why_in_space": "Weightlessness changes blood circulation and how the heart and blood vessels work. NASA's Human Research Program studies these cardiovascular adaptations.",
     "guidance": {
       "normal": "Nothing to do. Keep your regular measurement schedule.",
-      "attention": "Rest for 10 minutes and measure again. Note anything unusual you feel.",
-      "critical": "Contact your flight surgeon now."
+      "attention": "Measure again at rest. The American Heart Association suggests checking resting heart rate first thing in the morning, before getting up.",
+      "critical": "Above 100 bpm at rest is defined as tachycardia (AHA). Measure again at rest, then contact your flight surgeon."
     },
-    "sources": ["https://www.nasa.gov/hrp/risks/"]
+    "sources": [
+      "https://www.nasa.gov/hrp/risks/",
+      "https://www.heart.org/en/health-topics/high-blood-pressure/the-facts-about-high-blood-pressure/all-about-heart-rate-pulse"
+    ]
   },
   "bp_systolic": {
     "label": "Blood pressure (systolic)",
@@ -25,9 +28,13 @@
     "guidance": {
       "normal": "Nothing to do. Keep your regular measurement schedule.",
       "attention": "Sit still for a few minutes and measure again.",
-      "critical": "Contact your flight surgeon now."
+      "critical": "The American Heart Association advises waiting five minutes and measuring again. If it is still outside the range, contact your flight surgeon now."
     },
-    "sources": ["https://www.nasa.gov/hrp/risks/"]
+    "sources": [
+      "https://www.nasa.gov/hrp/risks/",
+      "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
+      "https://www.nhlbi.nih.gov/health/low-blood-pressure"
+    ]
   },
   "bp_diastolic": {
     "label": "Blood pressure (diastolic)",
@@ -40,9 +47,13 @@
     "guidance": {
       "normal": "Nothing to do. Keep your regular measurement schedule.",
       "attention": "Sit still for a few minutes and measure again.",
-      "critical": "Contact your flight surgeon now."
+      "critical": "The American Heart Association advises waiting five minutes and measuring again. If it is still outside the range, contact your flight surgeon now."
     },
-    "sources": ["https://www.nasa.gov/hrp/risks/"]
+    "sources": [
+      "https://www.nasa.gov/hrp/risks/",
+      "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
+      "https://www.nhlbi.nih.gov/health/low-blood-pressure"
+    ]
   },
   "glucose": {
     "label": "Blood glucose",
@@ -55,9 +66,13 @@
     "guidance": {
       "normal": "Nothing to do. Keep your regular measurement schedule.",
       "attention": "Note when you last ate and measure again later.",
-      "critical": "Contact your flight surgeon now."
+      "critical": "This value is outside the range set by American Diabetes Association guidance. Measure again, then contact your flight surgeon now."
     },
-    "sources": ["https://www.nasa.gov/hrp/risks/"]
+    "sources": [
+      "https://www.nasa.gov/hrp/risks/",
+      "https://diabetes.org/living-with-diabetes/treatment-care/hyperglycemia",
+      "https://doi.org/10.2337/dc16-2215"
+    ]
   },
   "temperature": {
     "label": "Body temperature",
@@ -69,10 +84,14 @@
     "why_in_space": "The stress of spaceflight can alter immune responses and reactivate dormant viruses (NASA Human Research Program).",
     "guidance": {
       "normal": "Nothing to do. Keep your regular measurement schedule.",
-      "attention": "Measure again in an hour and note any symptoms.",
-      "critical": "Contact your flight surgeon now."
+      "attention": "Measure again in an hour and note any symptoms (rash, cough, chills).",
+      "critical": "38 °C or more is a fever by the CDC definition; below 35 °C is an emergency. Contact your flight surgeon now and note any symptoms."
     },
-    "sources": ["https://www.nasa.gov/hrp/risks/"]
+    "sources": [
+      "https://www.nasa.gov/hrp/risks/",
+      "https://www.cdc.gov/port-health/php/definitions-symptoms-reportable-illness/index.html",
+      "https://www.cdc.gov/winter-weather/prevention/index.html"
+    ]
   },
   "sleep_hours": {
     "label": "Sleep",
@@ -84,10 +103,13 @@
     "why_in_space": "NASA lists inadequate sleep and irregular schedules among the risks of long missions: they affect alertness, mood and performance.",
     "guidance": {
       "normal": "Nothing to do. Keep protecting your rest window.",
-      "attention": "Protect tonight's rest window and log your sleep tomorrow morning. If it stays low, raise it at the next comm pass.",
-      "critical": "Contact your flight surgeon now."
+      "attention": "Adults need at least 7 hours of sleep (AASM, CDC). Keep regular sleep and wake times, and put screens away before rest. If it stays low, raise it at the next comm pass.",
+      "critical": "Contact your flight surgeon."
     },
-    "sources": ["https://www.nasa.gov/hrp/risks/"]
+    "sources": [
+      "https://www.nasa.gov/hrp/risks/",
+      "https://archive.cdc.gov/www_cdc_gov/media/releases/2016/p0215-enough-sleep.html"
+    ]
   },
   "mood": {
     "label": "Mood (self-reported)",
@@ -99,9 +121,11 @@
     "why_in_space": "Isolation, confinement and distance from Earth can take a toll on mental health. NASA tracks this as a behavioral health risk.",
     "guidance": {
       "normal": "Nothing to do. Keep checking in daily.",
-      "attention": "Write a short note on how you feel. Talking with the crew or the support team on Earth is part of the routine, not an exception.",
+      "attention": "Write a short note on how you feel. NASA tracks behavioral health as a spaceflight risk: talking with the crew or the support team on Earth is part of the routine, not an exception.",
       "critical": "Contact your flight surgeon now."
     },
-    "sources": ["https://www.nasa.gov/hrp/risks/"]
+    "sources": [
+      "https://www.nasa.gov/hrp/risks/"
+    ]
   }
 }

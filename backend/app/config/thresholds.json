@@ -1,10 +1,57 @@
 {
-  "_README": "Medical reference thresholds. These are the ONLY thresholds that can trigger 'critical'. Fill in a value ONLY with a verified source (organization + URL). null = no threshold.",
-  "heart_rate":   { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "bp_systolic":  { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "bp_diastolic": { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "glucose":      { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "temperature":  { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "sleep_hours":  { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "mood":         { "critical_low": null, "critical_high": null, "source": "TODO" }
+  "_README": "Documented reference thresholds. These are the ONLY rules that can trigger 'critical'. Each value comes from a published guideline for the general adult population (see url). They are NOT spaceflight-specific flight rules, which are not public. null = no documented escalation threshold, so only the personal-baseline rules apply. A bound is strict (value must be beyond it) unless '<bound>_inclusive' is true.",
+  "heart_rate": {
+    "critical_low": null,
+    "critical_high": 100,
+    "source": "American Heart Association",
+    "url": "https://www.heart.org/en/health-topics/high-blood-pressure/the-facts-about-high-blood-pressure/all-about-heart-rate-pulse",
+    "note": "AHA: normal resting heart rate is 60-100 bpm; above 100 at rest is tachycardia. No low bound: below 60 (bradycardia) is common in fit people, so it is left to the personal baseline."
+  },
+  "bp_systolic": {
+    "critical_low": 90,
+    "critical_high": 180,
+    "source": "AHA (high) / NHLBI (low)",
+    "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
+    "url_low": "https://www.nhlbi.nih.gov/health/low-blood-pressure",
+    "note": "AHA: higher than 180 systolic = hypertensive crisis, consult a doctor immediately. NHLBI: low blood pressure is lower than 90/60 mm Hg (NHLBI also notes it is often harmless without symptoms)."
+  },
+  "bp_diastolic": {
+    "critical_low": 60,
+    "critical_high": 120,
+    "source": "AHA (high) / NHLBI (low)",
+    "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
+    "url_low": "https://www.nhlbi.nih.gov/health/low-blood-pressure",
+    "note": "AHA: higher than 120 diastolic = hypertensive crisis. NHLBI: low blood pressure is lower than 90/60 mm Hg."
+  },
+  "glucose": {
+    "critical_low": 54,
+    "critical_high": 240,
+    "source": "American Diabetes Association",
+    "url": "https://diabetes.org/living-with-diabetes/treatment-care/hyperglycemia",
+    "url_low": "https://doi.org/10.2337/dc16-2215",
+    "note": "ADA/EASD: below 54 mg/dL = clinically significant (level 2) hypoglycemia. ADA: above 240 mg/dL, check for ketones. Both come from diabetes care guidance."
+  },
+  "temperature": {
+    "critical_low": 35.0,
+    "critical_high": 38.0,
+    "critical_high_inclusive": true,
+    "source": "CDC",
+    "url": "https://www.cdc.gov/winter-weather/prevention/index.html",
+    "url_high": "https://www.cdc.gov/port-health/php/definitions-symptoms-reportable-illness/index.html",
+    "note": "CDC: fever = measured temperature of at least 38 °C (100.4 °F). CDC: below 35 °C (95 °F) is an emergency (hypothermia)."
+  },
+  "sleep_hours": {
+    "critical_low": null,
+    "critical_high": null,
+    "source": "AASM / CDC",
+    "url": "https://archive.cdc.gov/www_cdc_gov/media/releases/2016/p0215-enough-sleep.html",
+    "note": "Adults should sleep at least 7 hours per night (AASM, CDC). This is a health recommendation, not an escalation threshold, so it is used in guidance only."
+  },
+  "mood": {
+    "critical_low": null,
+    "critical_high": null,
+    "source": null,
+    "url": null,
+    "note": "Self-reported 1-5 scale, not a clinical instrument: no escalation threshold."
+  }
 }

@@ -49,6 +49,13 @@ def _is_watched(direction: str, delta: float) -> bool:
     return True
 
 
+def _beyond(value: float, bound: float, below: bool, inclusive: bool) -> bool:
+    """True when value is past the bound (strict unless inclusive)."""
+    if below:
+        return value <= bound if inclusive else value < bound
+    return value >= bound if inclusive else value > bound
+
+
 def analyse(indicator: str, df: pd.DataFrame) -> IndicatorStatus:
     """df: columns [timestamp, value] (timestamps tz-aware), any order."""
     if df.empty:
@@ -74,15 +81,18 @@ def analyse(indicator: str, df: pd.DataFrame) -> IndicatorStatus:
     if len(baseline_df) >= MIN_POINTS:
         mean, std = baseline_df["value"].mean(), baseline_df["value"].std()
         status.baseline = round(float(mean), 2)
+        delta = status.value - mean
         if std and std > 0:
-            z = (status.value - mean) / std
-            if abs(z) >= Z_ATTENTION and _is_watched(direction, z):
-                status.level = "attention"
-                where = "well above" if z > 0 else "well below"
-                status.reasons.append(
-                    f"Current value {status.value:g} is {where} your personal baseline "
-                    f"({mean:.1f})."
-                )
+            z = delta / std
+        else:
+            # Perfectly constant baseline (common on a 1-5 scale): any change is unusual.
+            z = 0.0 if delta == 0 else float("inf") if delta > 0 else float("-inf")
+        if abs(z) >= Z_ATTENTION and _is_watched(direction, z):
+            status.level = "attention"
+            where = "above" if z > 0 else "below"
+            status.reasons.append(
+                f"Current value {status.value:g} is well {where} your personal baseline ({mean:.1f})."
+            )
 
     # --- Layer 1b: sustained trend over the recent window ---------------
     if len(recent_df) >= MIN_POINTS:
@@ -101,12 +111,12 @@ def analyse(indicator: str, df: pd.DataFrame) -> IndicatorStatus:
     # --- Layer 2: documented thresholds (only source of "critical") -----
     t = thresholds().get(indicator, {})
     low, high, src = t.get("critical_low"), t.get("critical_high"), t.get("source")
-    if low is not None and status.value < low:
+    if low is not None and _beyond(status.value, low, below=True, inclusive=t.get("critical_low_inclusive", False)):
         status.level = "critical"
-        status.reasons.append(f"Below the reference threshold {low} (source: {src}).")
-    if high is not None and status.value > high:
+        status.reasons.append(f"Below the reference threshold of {low:g} ({src}).")
+    if high is not None and _beyond(status.value, high, below=False, inclusive=t.get("critical_high_inclusive", False)):
         status.level = "critical"
-        status.reasons.append(f"Above the reference threshold {high} (source: {src}).")
+        status.reasons.append(f"Above the reference threshold of {high:g} ({src}).")
 
     if status.level == "normal":
         status.reasons.append("No unusual change detected.")

@@ -57,11 +57,10 @@ The backend generates it automatically on startup when the database is empty; ex
 | Cmdr. A. Rivera | Lunar base | Sleep and mood dropping, resting heart rate rising | Watch |
 | Eng. L. Moreau | Mars transit (3–22 min delay) | Temperature rising past 38 °C, blood pressure trending up | Critical |
 
-Each crew member also gets two **simulated** devices (see [Devices](#devices-simulated)). The generated history
-of every indicator a device supports is attributed to that device (`source: "device"`, e.g. Rivera's heart rate
-and systolic blood pressure come from her simulated Bio-Monitor shirt); other indicators stay `source: "simulated"`.
-The values themselves are identical either way, so the demo story does not change. The generator prints each
-device's id and token at the end.
+Every crew member carries the same standard kit of five **simulated** devices (see [Devices](#devices-simulated)).
+Each generated reading is attributed to the device that measures it (`source: "device"`); **mood is self-reported**,
+so it stays `source: "simulated"`. The values themselves are identical either way, so the demo story does not change.
+The generator prints each device's id and token at the end.
 
 > **Schema change (devices):** the SQLite schema now has a `device` table and a `measurement.device_id` column.
 > If you have an older `backend/houston_pulse.db`, delete it and rerun `python -m scripts.generate_data`
@@ -147,8 +146,21 @@ every device name says "(simulated)".
 | `thermometer` | body temperature | generic body thermometer |
 | `glucometer` | blood glucose | generic blood glucose meter |
 
-The kinds live in `backend/app/config/devices.json`. Demo devices: Rivera → Bio-Monitor shirt + Sleep band,
-Tanaka → Sleep band + BP cuff, Moreau → Bio-Monitor shirt + Thermometer (all simulated).
+The kinds live in `backend/app/config/devices.json`. **Every crew member carries the same standard kit** (all
+simulated), and the generated history of each indicator comes from one device:
+
+| Device | Generated history |
+|---|---|
+| Bio-Monitor shirt (simulated) | heart rate |
+| Sleep band (simulated) | sleep |
+| BP cuff (simulated) | systolic + diastolic blood pressure (the cuff is the reference; the shirt's systolic is not duplicated) |
+| Thermometer (simulated) | body temperature |
+| Glucometer (simulated) | blood glucose |
+| — | mood: self-reported, no device can measure it |
+
+Device ids follow the crew order, five per person: Rivera 1–5, Tanaka 6–10, Moreau 11–15 (the shirt is the
+first of each: 1, 6, 11). Rivera's thermometer and glucometer show "Not synced for 25 h" because her glucose and
+temperature checks are due.
 
 **Run the device simulator** (stdlib only) while the API is running:
 ```bash

@@ -16,7 +16,6 @@ import numpy as np
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, delete, select
 
-from app.config import devices as device_kinds
 from app.config import indicators
 from app.database import engine, init_db
 from app.models import Astronaut, Device, Measurement
@@ -40,16 +39,33 @@ ASTRONAUTS = [
     {"name": "Cmdr. A. Rivera", "mission": "Artemis Base Camp (simulated)", "environment": "lunar_base",
      "scenario": {"sleep_hours": (-0.3, 7), "mood": (-0.25, 7), "heart_rate": (1.5, 6)},
      # Today's checks demo: these were not measured on the last simulated day.
-     "skip_last_day": {"glucose", "temperature"},
-     "devices": [("smart_shirt", "Bio-Monitor shirt (simulated)"), ("actigraphy_band", "Sleep band (simulated)")]},
+     "skip_last_day": {"glucose", "temperature"}},
     {"name": "Dr. K. Tanaka", "mission": "ISS Expedition (simulated)", "environment": "station",
-     "scenario": {},
-     "devices": [("actigraphy_band", "Sleep band (simulated)"), ("bp_cuff", "BP cuff (simulated)")]},
+     "scenario": {}},
     {"name": "Eng. L. Moreau", "mission": "Mars Transit (simulated)", "environment": "mars_transit",
      # Mars transit: rising temperature (crosses the documented fever threshold) + rising BP
-     "scenario": {"temperature": (0.5, 3), "bp_systolic": (2.0, 5)},
-     "devices": [("smart_shirt", "Bio-Monitor shirt (simulated)"), ("thermometer", "Thermometer (simulated)")]},
+     "scenario": {"temperature": (0.5, 3), "bp_systolic": (2.0, 5)}},
 ]
+
+# Every crew member carries the same standard kit of SIMULATED devices (kind, name).
+KIT = [
+    ("smart_shirt", "Bio-Monitor shirt (simulated)"),
+    ("actigraphy_band", "Sleep band (simulated)"),
+    ("bp_cuff", "BP cuff (simulated)"),
+    ("thermometer", "Thermometer (simulated)"),
+    ("glucometer", "Glucometer (simulated)"),
+]
+# Which device the generated history of each indicator comes from. The cuff is the reference for
+# blood pressure (the shirt's systolic is not duplicated). Mood is self-reported: no device, so it
+# stays a plain "simulated" row.
+GENERATED_BY = {
+    "heart_rate": "smart_shirt",
+    "sleep_hours": "actigraphy_band",
+    "bp_systolic": "bp_cuff",
+    "bp_diastolic": "bp_cuff",
+    "temperature": "thermometer",
+    "glucose": "glucometer",
+}
 
 
 def seed(db_engine: Engine) -> list[tuple[int, str, str, str]]:
@@ -75,16 +91,14 @@ def seed(db_engine: Engine) -> list[tuple[int, str, str, str]]:
             s.add(astro)
             s.flush()
             # Devices use `secrets`, not `rng`, so the simulated values stay identical.
-            # Each indicator a device supports is attributed to it (first matching device wins);
-            # the others stay plain "simulated" rows. Every device here is itself simulated.
-            source_of: dict[str, Device] = {}
-            for kind, name in a.get("devices", []):
+            kit: dict[str, Device] = {}
+            for kind, name in KIT:
                 dev = Device(astronaut_id=astro.id, kind=kind, name=name, token=secrets.token_urlsafe(24))
                 s.add(dev)
+                kit[kind] = dev
                 created.append((a["name"], dev))
-                for ind in device_kinds()[kind]["indicators"]:
-                    source_of.setdefault(ind, dev)
             s.flush()  # device ids
+            source_of = {ind: kit[kind] for ind, kind in GENERATED_BY.items()}
             last_reading: dict[int, datetime] = {}
             for d in range(DAYS):
                 ts = start + timedelta(days=d)
@@ -107,8 +121,9 @@ def seed(db_engine: Engine) -> list[tuple[int, str, str, str]]:
                                       device_id=dev.id if dev else None))
                     if dev:
                         last_reading[dev.id] = max(ts, last_reading.get(dev.id, ts))
-            # A device was last seen when it sent its latest generated reading.
-            for dev in source_of.values():
+            # A device was last seen when it sent its latest generated reading (Rivera's glucometer
+            # and thermometer: the day before, since her glucose and temperature checks are due).
+            for dev in kit.values():
                 dev.last_seen = last_reading.get(dev.id)
         s.commit()
         # Read the values while the session is still open (the objects expire after it closes).

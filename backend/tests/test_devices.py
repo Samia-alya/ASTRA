@@ -29,11 +29,18 @@ def test_device_kinds_only_use_known_indicators():
 
 def test_device_list_hides_tokens(client):
     body = client.get("/astronauts/1/devices").json()
-    assert [d["name"] for d in body] == ["Bio-Monitor shirt (simulated)", "Sleep band (simulated)"]
+    assert [d["name"] for d in body] == [
+        "Bio-Monitor shirt (simulated)", "Sleep band (simulated)", "BP cuff (simulated)",
+        "Thermometer (simulated)", "Glucometer (simulated)",
+    ]
     for d in body:
         assert "token" not in d and d["simulated"] is True and "(simulated)" in d["name"]
-        # Generated history is attributed to the devices: last seen ~1 h ago -> "synced".
-        assert d["status"] == "synced" and d["last_seen"]
+        assert d["last_seen"]  # generated history is attributed to the devices
+    # Last reading ~1 h ago -> synced; Rivera's glucometer and thermometer missed today (checks due) -> stale.
+    assert {d["kind"]: d["status"] for d in body} == {
+        "smart_shirt": "synced", "actigraphy_band": "synced", "bp_cuff": "synced",
+        "thermometer": "stale", "glucometer": "stale",
+    }
     assert body[0]["indicators"] == ["heart_rate", "bp_systolic"]
     assert client.get("/astronauts/999/devices").status_code == 404
 
@@ -90,7 +97,8 @@ def test_last_source_for_simulated_and_manual(client):
     by_ind = {i["indicator"]: i["last_source"] for i in client.get("/astronauts/2/status").json()["indicators"]}
     assert by_ind["sleep_hours"] == {"type": "device", "device_name": "Sleep band (simulated)"}
     assert by_ind["bp_systolic"] == by_ind["bp_diastolic"] == {"type": "device", "device_name": "BP cuff (simulated)"}
-    assert by_ind["glucose"] == by_ind["mood"] == {"type": "simulated", "device_name": None}
+    assert by_ind["glucose"] == {"type": "device", "device_name": "Glucometer (simulated)"}
+    assert by_ind["mood"] == {"type": "simulated", "device_name": None}  # self-reported
     client.post("/astronauts/2/measurements", json={"indicator": "mood", "value": 4})
     mood = next(i for i in client.get("/astronauts/2/status").json()["indicators"] if i["indicator"] == "mood")
     assert mood["last_source"] == {"type": "manual", "device_name": None}
@@ -101,11 +109,13 @@ def test_generator_attributes_history_to_devices(client):
     assert len(hr) == 30 and all(m["source"] == "device" and m["device_name"] == "Bio-Monitor shirt (simulated)" for m in hr)
     sleep = client.get("/astronauts/1/measurements?indicator=sleep_hours").json()
     assert all(m["device_name"] == "Sleep band (simulated)" for m in sleep)
-    glucose = client.get("/astronauts/1/measurements?indicator=glucose").json()
-    assert all(m["source"] == "simulated" and m["device_id"] is None for m in glucose)
+    sys_bp = client.get("/astronauts/1/measurements?indicator=bp_systolic").json()
+    assert all(m["device_name"] == "BP cuff (simulated)" for m in sys_bp)  # the cuff, not the shirt
+    mood = client.get("/astronauts/1/measurements?indicator=mood").json()
+    assert all(m["source"] == "simulated" and m["device_id"] is None for m in mood)
     # Each device: latest value per supported indicator, and last_seen = its latest reading.
     shirt = client.get("/astronauts/1/devices").json()[0]
-    assert [r["indicator"] for r in shirt["latest"]] == ["heart_rate", "bp_systolic"]
+    assert [r["indicator"] for r in shirt["latest"]] == ["heart_rate"]
     assert shirt["last_seen"] == max(r["timestamp"] for r in shirt["latest"])
 
 
@@ -133,3 +143,12 @@ def test_live_mode_tick_streams_shirt_heart_rate(client):
     # Other device kinds do not stream.
     band = next(d for d in client.get("/astronauts/1/devices").json() if d["kind"] == "actigraphy_band")
     assert band["status"] == "synced"
+
+
+def test_standard_kit_mapping_is_consistent():
+    from scripts.generate_data import GENERATED_BY, KIT
+    kinds = {k for k, _ in KIT}
+    for ind, kind in GENERATED_BY.items():
+        assert kind in kinds and ind in devices()[kind]["indicators"], (ind, kind)
+    assert "mood" not in GENERATED_BY  # self-reported: no device measures it
+    assert all("(simulated)" in name for _, name in KIT)

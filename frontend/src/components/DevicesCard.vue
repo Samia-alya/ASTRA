@@ -28,11 +28,6 @@ function readingName(r: DeviceReading): string {
   return r.label.includes('(') ? (props.meta[r.indicator]?.short ?? r.label) : r.label
 }
 
-function latestTime(d: Device): string | null {
-  if (!d.latest.length) return null
-  return d.latest.map((r) => r.timestamp).sort().at(-1) ?? null
-}
-
 // Simple line icons per device kind (decorative; the name says what it is).
 const ICONS: Record<string, string> = {
   smart_shirt: 'M8 3 L4 5.5 L2.5 10 L5.5 11 L6 9.5 V21 H18 V9.5 L18.5 11 L21.5 10 L20 5.5 L16 3 Q12 6 8 3 Z',
@@ -50,25 +45,22 @@ const ICONS: Record<string, string> = {
     <ul v-else aria-labelledby="devices-title">
       <li v-for="d in devices" :key="d.id">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path :d="ICONS[d.kind] ?? ICONS.thermometer" fill="none" stroke="currentColor" stroke-width="1.6"
+          <path :d="ICONS[d.kind] ?? ICONS.thermometer" fill="none" stroke="currentColor" stroke-width="1.7"
             stroke-linecap="round" stroke-linejoin="round" />
         </svg>
-        <div class="text">
-          <div class="top">
-            <span class="name">{{ d.name }}</span>
-            <span class="status" :class="d.status">
-              <span class="status-dot" aria-hidden="true" />{{ statusText(d) }}
-            </span>
-          </div>
-          <p v-if="d.latest.length" class="latest">
+        <div class="main">
+          <span class="name">{{ d.name }}</span>
+          <span v-if="d.latest.length" class="latest">
             <template v-for="(r, i) in d.latest" :key="r.indicator">
               <span v-if="i" aria-hidden="true"> · </span>
               <span class="reading">{{ readingName(r) }} <strong>{{ fmt(r.value, r.unit) }}</strong> {{ r.unit }}</span>
             </template>
-            <span class="when"> · {{ ago(latestTime(d), now) }}</span>
-          </p>
-          <span v-else class="what">Measures {{ measures(d).toLowerCase() }}</span>
+          </span>
+          <span v-else class="latest muted">Measures {{ measures(d).toLowerCase() }}</span>
         </div>
+        <span class="status" :class="d.status">
+          <span class="status-dot" aria-hidden="true" />{{ statusText(d) }}
+        </span>
       </li>
     </ul>
     <p class="note">Simulated devices modeled on real crew hardware (CSA Bio-Monitor, Artemis II actigraphy).</p>
@@ -76,20 +68,29 @@ const ICONS: Record<string, string> = {
 </template>
 
 <style scoped>
-.devices { display: flex; flex-direction: column; gap: 12px; }
+.devices { display: flex; flex-direction: column; gap: 10px; }
 h2 { margin: 0; font-size: 16px; font-weight: 600; }
 ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-li { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+/* One compact row per device: icon | name + values | status. The status wraps below when narrow. */
+li {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
 li:last-child { border-bottom: none; }
 .icon {
-  width: 36px; height: 36px; flex: none; padding: 6px; border-radius: 10px;
+  width: 30px; height: 30px; flex: none; padding: 5px; border-radius: 9px;
   background: var(--panel-2); color: var(--accent-2);
 }
-.text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; }
-.name { font-size: 15px; }
+.main { flex: 1 1 150px; min-width: 0; display: flex; flex-direction: column; }
+.name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.latest { font-size: 12.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.latest strong { color: var(--text); font-weight: 600; }
+.latest.muted { color: var(--muted); }
 
-.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.status {
+  display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
 .status-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--border-strong); }
 .status.live, .status.synced { color: var(--accent); }
 .status.live .status-dot, .status.synced .status-dot { background: var(--accent); }
@@ -101,11 +102,11 @@ li:last-child { border-bottom: none; }
   0% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.6); }
   100% { box-shadow: 0 0 0 8px rgba(45, 212, 191, 0); }
 }
+/* Narrow screens: status on its own line, aligned with the text. */
+@media (max-width: 480px) {
+  .status { margin-left: 40px; flex-basis: 100%; }
+}
 
-.latest { margin: 0; font-size: 13px; color: var(--text-2); line-height: 1.5; }
-.latest strong { color: var(--text); font-weight: 600; }
-.reading { white-space: nowrap; }
-.when, .what { font-size: 13px; color: var(--muted); }
 .empty { margin: 0; color: var(--muted); font-size: 14px; }
 .note { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
 </style>

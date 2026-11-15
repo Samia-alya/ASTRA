@@ -4,18 +4,23 @@ All values are synthetic and only meant for the demo. They are NOT real
 astronaut data and the "typical" values below are NOT medical references.
 
 Usage (from backend/):  python -m scripts.generate_data
+    Wipes the database and regenerates fresh data ending 1 hour ago.
+
+The backend also calls seed_if_empty() at startup, so a fresh checkout has demo
+data without running this script (disable with HOUSTON_PULSE_NO_SEED=1).
 """
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
-from sqlmodel import Session, SQLModel, delete
+from sqlalchemy.engine import Engine
+from sqlmodel import Session, delete, select
 
 from app.config import indicators
 from app.database import engine, init_db
 from app.models import Astronaut, Measurement
 
 DAYS = 30
-rng = np.random.default_rng(42)
+SEED = 42
 
 # Simulation centre values and noise (synthetic, for the demo only).
 SIM = {
@@ -42,15 +47,16 @@ ASTRONAUTS = [
 ]
 
 
-def main() -> None:
-    init_db()
+def seed(db_engine: Engine) -> None:
+    """Replace all astronauts and measurements with freshly generated SIMULATED data."""
+    rng = np.random.default_rng(SEED)  # same demo story on every run
     # Last simulated point = 1 hour ago, so new manual entries are always the most recent.
     end = datetime.now(timezone.utc).replace(second=0, microsecond=0) - timedelta(hours=1)
     start = end - timedelta(days=DAYS - 1)
     # Round to each indicator's entry step (whole bpm, 0.1 °C, quarter hours…) like a real device,
     # so the simulated data also passes the plausibility validation of manual entries.
     steps = {k: m["input"]["step"] for k, m in indicators().items()}
-    with Session(engine) as s:
+    with Session(db_engine) as s:
         s.exec(delete(Measurement))
         s.exec(delete(Astronaut))
         for a in ASTRONAUTS:
@@ -75,6 +81,20 @@ def main() -> None:
                     s.add(Measurement(astronaut_id=astro.id, indicator=ind, value=v,
                                       timestamp=ts, source="simulated"))
         s.commit()
+
+
+def seed_if_empty(db_engine: Engine) -> bool:
+    """Seed only when there is no astronaut yet; never touches existing data. Returns True if seeded."""
+    with Session(db_engine) as s:
+        if s.exec(select(Astronaut.id).limit(1)).first() is not None:
+            return False
+    seed(db_engine)
+    return True
+
+
+def main() -> None:
+    init_db()
+    seed(engine)
     print(f"Generated {DAYS} days of SIMULATED data for {len(ASTRONAUTS)} astronauts.")
 
 

@@ -152,3 +152,39 @@ def test_generated_demo_data_is_plausible(client):
     for a in client.get("/astronauts").json():
         for m in client.get(f"/astronauts/{a['id']}/measurements").json():
             assert validate_value(meta[m["indicator"]], m["value"]) is None, m
+
+
+# --- Auto-seed at startup -------------------------------------------------------
+
+@pytest.fixture()
+def empty_engine(tmp_path, monkeypatch):
+    """A fresh, empty database (tables created by the app's lifespan)."""
+    monkeypatch.delenv("HOUSTON_PULSE_NO_SEED", raising=False)
+    engine = create_engine(f"sqlite:///{tmp_path / 'empty.db'}", connect_args={"check_same_thread": False})
+    monkeypatch.setattr(database, "engine", engine)
+    return engine
+
+
+def test_startup_seeds_empty_database(empty_engine):
+    with TestClient(app) as c:
+        assert len(c.get("/astronauts").json()) == 3
+        assert c.get("/astronauts/1/measurements").json()
+
+
+def test_startup_keeps_existing_data(empty_engine):
+    with TestClient(app) as c:
+        r = c.post("/astronauts/2/measurements", json={"indicator": "heart_rate", "value": 71})
+        assert r.status_code == 201
+        before = c.get("/astronauts/2/measurements").json()
+    # Restart: existing data, including the manual entry, must survive unchanged.
+    with TestClient(app) as c:
+        after = c.get("/astronauts/2/measurements").json()
+        assert len(c.get("/astronauts").json()) == 3
+    assert after == before
+    assert any(m["source"] == "manual" and m["value"] == 71 for m in after)
+
+
+def test_startup_seed_disabled_by_env(empty_engine, monkeypatch):
+    monkeypatch.setenv("HOUSTON_PULSE_NO_SEED", "1")
+    with TestClient(app) as c:
+        assert c.get("/astronauts").json() == []

@@ -17,7 +17,7 @@ from sqlmodel import Session, delete, select
 
 from app.config import indicators
 from app.database import engine, init_db
-from app.models import Astronaut, AutonomyAction, Measurement, ReportTransmission
+from app.models import Astronaut, AutonomyAction, Measurement, ReportStep, ReportTransmission
 
 DAYS = 30
 SEED = 42
@@ -59,6 +59,7 @@ def seed(db_engine: Engine) -> None:
     with Session(db_engine) as s:
         # Children first: no orphan checks or reports from a previous generation.
         s.exec(delete(AutonomyAction))
+        s.exec(delete(ReportStep))
         s.exec(delete(ReportTransmission))
         s.exec(delete(Measurement))
         s.exec(delete(Astronaut))

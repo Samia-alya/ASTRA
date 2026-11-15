@@ -3,6 +3,7 @@
 // Monitoring and communication only: no diagnosis, no medication, no treatment.
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { api } from '../api'
+import { duration } from '../environments'
 import { formatUtc } from '../report'
 import type { AutonomyResponse } from '../types'
 
@@ -17,9 +18,12 @@ const reply = computed(() => props.data.autonomy.earliest_reply_s)
 const checkedCount = computed(() =>
   props.data.groups.reduce((n, g) => n + g.steps.filter((s) => s.checked_at).length, 0),
 )
+// What the last report actually contained (frozen when it was sent), not what is checked now.
+const sentCount = computed(() => props.data.report_steps.length)
+const newCount = computed(() => props.data.new_steps_since_report)
 
-function minutes(s: number): string {
-  return `${Math.round(s / 60)} min`
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`
 }
 
 function hhmm(iso: string): string {
@@ -101,8 +105,8 @@ const countdown = computed(() => {
     </div>
 
     <dl class="facts">
-      <div><dt>One-way signal delay</dt><dd>{{ minutes(delay) }}</dd></div>
-      <div><dt>Earliest reply from Earth</dt><dd>{{ minutes(reply) }}</dd></div>
+      <div><dt>One-way signal delay</dt><dd>{{ duration(delay) }}</dd></div>
+      <div><dt>Earliest reply from Earth</dt><dd>{{ duration(reply) }}</dd></div>
       <div><dt>Mode</dt><dd>Earth-independent</dd></div>
     </dl>
     <p class="reason">{{ data.autonomy.reason }}</p>
@@ -127,9 +131,13 @@ const countdown = computed(() => {
 
       <div class="link">
         <h3>Report to Earth</h3>
-        <p class="sub">
-          Includes {{ checkedCount }} checked step{{ checkedCount === 1 ? '' : 's' }} with their times.
+        <p v-if="!data.report_sent_at" class="sub">
+          Will include {{ plural(checkedCount, 'checked step') }} with their times.
         </p>
+        <template v-else>
+          <p class="sub">Last report included {{ plural(sentCount, 'checked step') }} with their times.</p>
+          <p v-if="newCount" class="new">{{ plural(newCount, 'new step') }} since last report</p>
+        </template>
         <div class="buttons">
           <button type="button" class="send" :disabled="busy" @click="send">
             {{ data.report_sent_at ? 'Send updated report to Earth' : 'Send report to Earth' }}
@@ -146,8 +154,8 @@ const countdown = computed(() => {
 
         <div v-if="phase === 'replied'" class="reply" role="status">
           <span class="sim">SIMULATED</span>
-          <p><strong>Flight surgeon, Houston:</strong> Report received with {{ checkedCount }} onboard
-            step{{ checkedCount === 1 ? '' : 's' }} logged. Keep following the onboard monitoring steps and the
+          <p><strong>Flight surgeon, Houston:</strong> Report received with {{ plural(sentCount, 'onboard step') }}
+            logged. Keep following the onboard monitoring steps and the
             2-hour re-measurement schedule. Send an updated report after your next measurement.</p>
           <p class="sim-note">Simulated reply for the demo. No real flight surgeon is connected.</p>
         </div>
@@ -214,6 +222,9 @@ li.checked .time { color: var(--nominal); }
 .ghost { background: transparent; color: var(--text); border: 1.5px solid var(--border-strong); }
 .ghost:hover { background: var(--panel); }
 .sent { margin: 0; font-size: 13px; color: var(--text-2); }
+.new {
+  align-self: flex-start; margin: -4px 0 0; font-size: 13px; font-weight: 600; color: var(--watch);
+}
 
 .countdown { display: flex; flex-direction: column; gap: 2px; }
 .c-label { font-size: 13px; color: var(--muted); }

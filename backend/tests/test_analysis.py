@@ -81,3 +81,14 @@ def test_mood_never_critical():
     # No documented threshold for a self-reported scale.
     st = analyse("mood", series([4] * 14 + [1]))
     assert st.level == "attention"
+
+
+def test_reason_baseline_uses_display_rounding():
+    """The reason shows the baseline with the same rounding as the UI (whole mmHg here, not 117.9)."""
+    from app.config import display_value
+    assert display_value("bp_systolic", 117.9) == "118"
+    assert display_value("temperature", 36.68) == "36.7"
+    assert display_value("sleep_hours", 6.25) == "6.3"  # half-up, like JavaScript toFixed
+    st = analyse("bp_systolic", series([118, 117, 119, 118, 117, 118, 118, 117, 119, 118, 117, 118, 118, 118, 150]))
+    reason = next(r for r in st.reasons if "baseline" in r)
+    assert "(118)" in reason and "." not in reason.split("baseline")[1].rstrip(".")

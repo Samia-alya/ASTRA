@@ -72,10 +72,23 @@ the distance to Earth**.
 
 | Environment | One-way delay | Round trip | Critical alert → |
 |---|---|---|---|
-| Low Earth orbit (station) | ≈ 1 s | ≈ 2 s | contact the flight surgeon now |
-| Lunar base | 1.3 s | 2.6 s | contact the flight surgeon now |
-| Mars transit, best case | 3 min | 6 min | contact the flight surgeon now (not used by the demo) |
-| Mars transit, worst case (used) | 22 min | 44 min | **Earth-independent mode** |
+| Low Earth orbit (station) | ≈ 1 s (prototype approximation) | ≈ 2 s | contact the flight surgeon now |
+| Lunar base | 1.28 s | 2.6 s | contact the flight surgeon now |
+| Mars transit, best case | 182 s (3 min) | 6 min | contact the flight surgeon now (not used by the demo) |
+| Mars transit, worst case (used) | 1,339 s (22 min) | 45 min | **Earth-independent mode** |
+
+**Signal delays** — one-way delay = distance / speed of light (299,792 km/s), computed by the backend
+from the distances in `environments.json`:
+
+| Environment | Distance (NASA NSSDCA) | Calculation |
+|---|---|---|
+| Lunar base | 384,400 km (Moon semimajor axis, [Moon Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html)) | 384,400 / 299,792 ≈ 1.28 s |
+| Mars transit, minimum | 54.6 × 10⁶ km ([Mars Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html), distance from Earth) | 54.6 × 10⁶ / 299,792 ≈ 182 s ≈ 3 min |
+| Mars transit, maximum | 401.4 × 10⁶ km (same sheet) | 401.4 × 10⁶ / 299,792 ≈ 1,339 s ≈ 22 min |
+| Low Earth orbit | — | ≈ 1 s, a prototype approximation for relays through ground and satellite networks (not a distance calculation) |
+
+The header, the Earth-independent panel and the report all use these same values (`GET /environments`
+and the `autonomy` block), shown as e.g. *22 min one-way (worst case, range 3–22 min)*.
 
 The status endpoint returns an `autonomy` block: `active`, `one_way_delay_s`,
 `earliest_reply_s` (= 2 × delay + ground response time) and a readable `reason`.
@@ -84,7 +97,7 @@ The status endpoint returns an `autonomy` block: `active`, `one_way_delay_s`,
 
 | Key | Value | Used for |
 |---|---|---|
-| `environments.*.one_way_delay_s` | 1 / 1.3 / 1320 | the rule; Mars uses the worst case of its real 180–1320 s range |
+| `environments.*.distance_km` → one-way delay | 1 s / 1.28 s / 1,339 s | the rule; Mars uses the worst case of its 182–1,339 s range |
 | `autonomy.round_trip_threshold_s` | 600 | the rule |
 | `autonomy.ground_response_s` | 900 (15 min) | assumed time for the flight surgeon to answer; **only** for `earliest_reply_s` and the countdown, never in the rule |
 | `autonomy.tight_check_interval_hours` | 2 | re-measurement interval of the critical indicator(s) in this mode (instead of 24 h) |
@@ -100,7 +113,9 @@ The frontend reads the environments from `GET /environments`, so the delays are 
   Each checked step is stored with its time (`AutonomyAction` table).
 - Today's checks asks for the critical indicator **every 2 h** and shows the time left before the next measurement.
 - **Send report to Earth** stores the sending time (`ReportTransmission` table) and the flight surgeon
-  report lists the checked steps with their times. Countdowns: *Reaches Earth in mm:ss*, then *Earliest reply in mm:ss*.
+  report lists the checked steps with their times; steps checked after the last transmission are marked
+  *not yet sent*. The steps included are frozen when the report is sent (`ReportStep` table), so the step
+  count and the simulated reply always match what was actually sent. Countdowns: *Reaches Earth in mm:ss*, then *Earliest reply in mm:ss*.
 - **Demo speed ×60** (clearly labelled simulation) speeds up the countdown for presentations. When the reply
   time has passed, a **SIMULATED** flight surgeon reply is shown; no real ground link exists.
 
@@ -118,7 +133,7 @@ also clears all checked steps and sent reports.
 ```
 backend/                       FastAPI + SQLite (Python)
   app/main.py                  app entry point, CORS, routers
-  app/models.py                tables: Astronaut, Measurement, AutonomyAction, ReportTransmission
+  app/models.py                tables: Astronaut, Measurement, AutonomyAction, ReportTransmission, ReportStep
   app/routers/                 REST endpoints
   app/analysis/anomaly.py      baseline + trend + documented thresholds
   app/analysis/checks.py       today's checks (one measurement per indicator per 24 h, 2 h in Earth-independent mode)
@@ -176,9 +191,9 @@ App: http://localhost:5173
 | POST | `/astronauts/{id}/measurements` | body `{indicator, value, timestamp?}`, stored with `source: "manual"`; 422 if the value fails the [input validation](#input-validation) |
 | GET | `/indicators` | metadata, explanations, guidance, onboard steps, sources |
 | GET | `/environments` | environments (name, one-way delay, source) and Earth-independent mode parameters |
-| GET | `/astronauts/{id}/autonomy` | onboard steps of each critical indicator with `checked_at`, plus `report_sent_at` (last 24 h only) |
+| GET | `/astronauts/{id}/autonomy` | onboard steps of each critical indicator with `checked_at` and `in_last_report`, plus `report_sent_at`, `report_steps` (frozen at sending) and `new_steps_since_report` (last 24 h only) |
 | PUT / DELETE | `/astronauts/{id}/autonomy/actions/{indicator}/{step_index}` | check / uncheck an onboard step |
-| POST | `/astronauts/{id}/autonomy/report` | record that a report was sent to Earth now |
+| POST | `/astronauts/{id}/autonomy/report` | record that a report was sent to Earth now, with the steps checked so far |
 
 ## Input validation
 

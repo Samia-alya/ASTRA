@@ -9,7 +9,7 @@ from sqlmodel import Session
 from app.analysis.autonomy import autonomy_state
 from app.analysis.checks import compute_checks
 from app.config import autonomy_rule, environments, indicators
-from app.models import AutonomyAction, ReportTransmission
+from app.models import AutonomyAction, ReportStep, ReportTransmission
 from tests.test_api import client  # noqa: F401  (fixture)
 
 RIVERA, TANAKA, MOREAU = 1, 2, 3
@@ -25,14 +25,14 @@ def test_station_critical_is_not_autonomous():
 
 def test_lunar_critical_is_not_autonomous():
     a = autonomy_state("critical", "lunar_base")
-    assert a["active"] is False and a["one_way_delay_s"] == 1.3
+    assert a["active"] is False and a["one_way_delay_s"] == 1.28
 
 
 def test_mars_critical_is_autonomous():
     a = autonomy_state("critical", "mars_transit")
     assert a["active"] is True
-    assert a["one_way_delay_s"] == 1320
-    assert a["earliest_reply_s"] == 2 * 1320 + autonomy_rule()["ground_response_s"]
+    assert a["one_way_delay_s"] == 1339
+    assert a["earliest_reply_s"] == 2 * 1339 + autonomy_rule()["ground_response_s"]
     assert "onboard monitoring steps" in a["reason"]
 
 
@@ -44,10 +44,19 @@ def test_mars_not_critical_is_not_autonomous():
 def test_rule_uses_round_trip_only(monkeypatch):
     """Mars best case (3 min one-way = 6 min round trip) stays under the 10 min threshold,
     even though earliest_reply_s (with ground response) is above it."""
-    best = dict(environments()["mars_transit"], one_way_delay_s=180)
+    best = dict(environments()["mars_transit"], one_way_delay_s=environments()["mars_transit"]["delay_range_s"][0])
     monkeypatch.setitem(environments(), "mars_transit", best)
     a = autonomy_state("critical", "mars_transit")
     assert a["active"] is False and a["earliest_reply_s"] > autonomy_rule()["round_trip_threshold_s"]
+
+
+def test_delays_are_distance_over_speed_of_light():
+    """NSSDCA fact sheets: Moon semimajor axis 384,400 km; Mars 54.6-401.4 million km from Earth."""
+    envs = environments()
+    assert envs["lunar_base"]["one_way_delay_s"] == round(384_400 / 299_792, 2) == 1.28
+    assert envs["mars_transit"]["delay_range_s"] == [round(54.6e6 / 299_792), round(401.4e6 / 299_792)]
+    assert envs["mars_transit"]["one_way_delay_s"] == envs["mars_transit"]["delay_range_s"][1]
+    assert envs["station"]["one_way_delay_s"] == 1  # prototype approximation
 
 
 def test_unknown_environment_is_not_autonomous():
@@ -80,8 +89,8 @@ def test_tanaka_fever_on_station_contacts_flight_surgeon(client):
 
 def test_environments_endpoint(client):
     body = client.get("/environments").json()
-    assert body["environments"]["mars_transit"]["one_way_delay_s"] == 1320
-    assert body["environments"]["mars_transit"]["delay_range_s"] == [180, 1320]
+    assert body["environments"]["mars_transit"]["one_way_delay_s"] == 1339
+    assert body["environments"]["mars_transit"]["delay_range_s"] == [182, 1339]
     assert body["autonomy"]["round_trip_threshold_s"] == 600
 
 
@@ -128,6 +137,42 @@ def test_send_report_is_persisted(client):
     assert client.post("/astronauts/999/autonomy/report").status_code == 404
 
 
+def test_report_freezes_included_steps(client):
+    """Steps checked after the last report are not counted as sent (reply + step count use the snapshot)."""
+    client.put(f"/astronauts/{MOREAU}/autonomy/actions/temperature/0")
+    client.put(f"/astronauts/{MOREAU}/autonomy/actions/temperature/1")
+    r = client.post(f"/astronauts/{MOREAU}/autonomy/report").json()
+    assert r["included_steps"] == 2
+    # Two more steps after sending.
+    client.put(f"/astronauts/{MOREAU}/autonomy/actions/temperature/2")
+    client.put(f"/astronauts/{MOREAU}/autonomy/actions/temperature/3")
+    body = _steps(client)
+    assert len(body["report_steps"]) == 2
+    assert {s["step_index"] for s in body["report_steps"]} == {0, 1}
+    assert body["new_steps_since_report"] == 2
+    temp = next(g for g in body["groups"] if g["indicator"] == "temperature")
+    assert [s["in_last_report"] for s in temp["steps"]] == [True, True, False, False, False]
+
+    # Unchecking a sent step does not change what the report contained.
+    client.delete(f"/astronauts/{MOREAU}/autonomy/actions/temperature/0")
+    body = _steps(client)
+    assert len(body["report_steps"]) == 2 and body["new_steps_since_report"] == 2
+    # Re-checking it later is a new action, not yet sent.
+    client.put(f"/astronauts/{MOREAU}/autonomy/actions/temperature/0")
+    assert _steps(client)["new_steps_since_report"] == 3
+
+    # A new report includes everything checked so far.
+    assert client.post(f"/astronauts/{MOREAU}/autonomy/report").json()["included_steps"] == 4
+    body = _steps(client)
+    assert len(body["report_steps"]) == 4 and body["new_steps_since_report"] == 0
+
+
+def test_no_report_yet_has_no_new_steps_count(client):
+    client.put(f"/astronauts/{MOREAU}/autonomy/actions/temperature/0")
+    body = _steps(client)
+    assert body["report_sent_at"] is None and body["report_steps"] == [] and body["new_steps_since_report"] == 0
+
+
 def test_old_episode_is_ignored(client):
     """A step checked or a report sent more than 24 h ago belongs to a past alert."""
     import app.database as database
@@ -154,6 +199,7 @@ def test_seed_clears_actions_and_reports(client):
         from sqlmodel import select
         assert s.exec(select(AutonomyAction)).all() == []
         assert s.exec(select(ReportTransmission)).all() == []
+        assert s.exec(select(ReportStep)).all() == []
 
 
 # --- Tighter monitoring ------------------------------------------------------------

@@ -127,7 +127,8 @@ function send() {
         <p v-if="!r.onboard.actions.length" class="nominal">No onboard step checked yet.</p>
         <ul v-else class="others">
           <li v-for="a in r.onboard.actions" :key="a.indicator + a.step">
-            <span>{{ a.indicator }}: {{ a.step }}</span><span>{{ a.at }}</span>
+            <span>{{ a.indicator }}: {{ a.step }}</span>
+            <span>{{ a.at }}<span v-if="!a.sent" class="unsent"> · not yet sent</span></span>
           </li>
         </ul>
         <p v-if="r.onboard.sentAt" class="nominal">Last sent to Earth: {{ r.onboard.sentAt }}</p>
@@ -231,6 +232,7 @@ textarea::placeholder { color: var(--muted); }
   margin: 0; padding: 12px 16px; border-radius: 12px; font-size: 15px;
   background: var(--panel-2); color: var(--text); border: 1px solid var(--accent);
 }
+.unsent { color: var(--watch); }
 .footer { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
 
 .actions {

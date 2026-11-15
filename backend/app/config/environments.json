@@ -1,21 +1,22 @@
 {
-  "_README": "Mission environments and their one-way signal delay to Earth. one_way_delay_s is the value used by the Earth-independent mode rule; for Mars it is the worst case (conjunction-side maximum). delay_range_s documents the real range when it varies.",
+  "_README": "Mission environments. One-way signal delay = distance / speed of light (299,792 km/s), computed at load time in app/config/__init__.py from distance_km (and distance_range_km when the distance varies). The Earth-independent mode rule uses the worst case (distance_km). Distances: NASA NSSDCA planetary fact sheets.",
+  "speed_of_light_km_s": 299792,
   "environments": {
     "station": {
       "name": "Low Earth orbit",
       "one_way_delay_s": 1,
-      "source": "Prototype approximation: near real-time voice and data via NASA's relay satellites (light time from low Earth orbit is far below 1 s)."
+      "source": "Prototype approximation (≈ 1 s, near real-time relay through ground and satellite networks). Not derived from a distance."
     },
     "lunar_base": {
       "name": "Lunar base",
-      "one_way_delay_s": 1.3,
-      "source": "Light travel time over the mean Earth-Moon distance (384,400 km / speed of light ≈ 1.3 s). NASA, Challenges in Communications for Exploration Class Missions: https://ntrs.nasa.gov/citations/20250002660"
+      "distance_km": 384400,
+      "source": "Moon semimajor axis 0.3844 × 10^6 km / 299,792 km/s ≈ 1.28 s. NASA NSSDCA Moon Fact Sheet: https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html"
     },
     "mars_transit": {
       "name": "Mars transit",
-      "one_way_delay_s": 1320,
-      "delay_range_s": [180, 1320],
-      "source": "One-way delay between Earth and Mars varies from about 3 to 22 minutes with planetary positions; the worst case (22 min) is used. NASA, Challenges in Communications for Exploration Class Missions: https://ntrs.nasa.gov/citations/20250002660"
+      "distance_km": 401400000,
+      "distance_range_km": [54600000, 401400000],
+      "source": "Distance from Earth: minimum 54.6 × 10^6 km, maximum 401.4 × 10^6 km; / 299,792 km/s ≈ 182 s to 1,339 s (3 to 22 min). The worst case (maximum) is used. NASA NSSDCA Mars Fact Sheet: https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html"
     }
   },
   "autonomy": {

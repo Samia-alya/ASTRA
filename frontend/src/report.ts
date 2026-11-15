@@ -17,7 +17,8 @@ export interface ReportIndicator {
 
 /** Earth-independent mode: onboard steps already checked and when the report was sent. */
 export interface OnboardLog {
-  actions: { indicator: string; step: string; at: string }[]
+  /** sent = included in the last report sent to Earth. */
+  actions: { indicator: string; step: string; at: string; sent: boolean }[]
   sentAt: string | null
 }
 
@@ -115,7 +116,9 @@ export function buildReport(
   if (r.onboard) {
     lines.push('', 'Onboard actions (Earth-independent mode)')
     if (!r.onboard.actions.length) lines.push('No onboard step checked yet.')
-    for (const a of r.onboard.actions) lines.push(`- ${a.at} · ${a.indicator}: ${a.step}`)
+    for (const a of r.onboard.actions) {
+      lines.push(`- ${a.at} · ${a.indicator}: ${a.step}${a.sent ? '' : ' (not yet sent)'}`)
+    }
     if (r.onboard.sentAt) lines.push(`Sent to Earth: ${r.onboard.sentAt}`)
   }
   const trimmed = note.trim()

@@ -58,9 +58,11 @@ const onboard = computed<OnboardLog | null>(() => {
   const a = autonomy.value
   if (!a) return null
   const actions = a.groups
-    .flatMap((g) => g.steps.filter((s) => s.checked_at).map((s) => ({ indicator: g.label, step: s.text, ts: s.checked_at! })))
+    .flatMap((g) => g.steps.filter((s) => s.checked_at).map((s) => ({
+      indicator: g.label, step: s.text, ts: s.checked_at!, sent: s.in_last_report,
+    })))
     .sort((x, y) => x.ts.localeCompare(y.ts))
-    .map(({ indicator, step, ts }) => ({ indicator, step, at: formatUtc(new Date(ts)) }))
+    .map(({ indicator, step, ts, sent }) => ({ indicator, step, at: formatUtc(new Date(ts)), sent }))
   return { actions, sentAt: a.report_sent_at ? formatUtc(new Date(a.report_sent_at)) : null }
 })
 
@@ -143,6 +145,11 @@ const deltaText = computed(() => {
 const guidance = computed(() => {
   const s = sel.value
   if (!s) return ''
+  // Earth-independent mode: "contact your flight surgeon now" would contradict the onboard panel.
+  if (autonomous.value && s.level === 'critical') {
+    return 'Earth cannot respond in time. Follow the onboard monitoring steps in the panel above, '
+      + 'then send a report to Earth. Re-measure every 2 hours.'
+  }
   return selMeta.value?.guidance?.[s.level] ?? 'Keep your regular measurement schedule.'
 })
 
@@ -219,7 +226,7 @@ watch(selected, loadHistory)
       </div>
       <div class="intro">
         <span class="hello">{{ greeting }}, {{ status.astronaut.name }}</span>
-        <h1>{{ headline.lead }}<template v-if="headline.count"> <span class="count">{{ headline.count }}</span>
+        <h1>{{ headline.lead }}<template v-if="headline.count">{{ ' ' }}<span class="count">{{ headline.count }}</span>
             {{ headline.tail }}</template></h1>
         <IndicatorGrid :indicators="status.indicators" :meta="meta" :selected="selected" @select="selected = $event" />
       </div>
@@ -287,9 +294,9 @@ watch(selected, loadHistory)
         <p>{{ selMeta?.why_in_space }}</p>
         <h2>What you can do now</h2>
         <p>{{ guidance }}</p>
-        <button class="primary" :class="{ critical: isCritical }" type="button" aria-haspopup="dialog"
-          @click="reportOpen = true">
-          {{ autonomous ? 'Preview report to Earth' : isCritical ? 'Contact flight surgeon now' : 'Message flight surgeon' }}
+        <button v-if="!autonomous" class="primary" :class="{ critical: isCritical }" type="button"
+          aria-haspopup="dialog" @click="reportOpen = true">
+          {{ isCritical ? 'Contact flight surgeon now' : 'Message flight surgeon' }}
         </button>
       </div>
     </section>

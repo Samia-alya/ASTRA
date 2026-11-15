@@ -40,7 +40,9 @@ function detail(c: CheckItem): string {
     return n !== null && n > 0 ? `Next in ${remaining(n)} · ${every}` : `Due now · ${every}`
   }
   if (c.done) return `measured ${ago(c.hours_since_last)}`
-  return c.hours_since_last === null ? 'Due · never measured' : `Due · ${Math.round(c.hours_since_last)} h`
+  return c.hours_since_last === null
+    ? 'Due · never measured'
+    : `Overdue · last measured ${Math.round(c.hours_since_last)} h ago`
 }
 </script>
 
@@ -66,8 +68,7 @@ function detail(c: CheckItem): string {
         </svg>
         <div class="text">
           <span class="name">{{ c.label }}<span class="sr-only">: {{ isDone(c) ? 'done' : 'due' }}</span></span>
-          <span class="when">{{ detail(c) }}<span v-if="!isDone(c) && !c.interval_hours && c.hours_since_last !== null" class="sr-only">
-              since the last measurement</span></span>
+          <span class="when">{{ detail(c) }}</span>
         </div>
         <button v-if="!isDone(c)" type="button" class="log" @click="emit('log', c.indicator)">
           Log now<span class="sr-only"> {{ c.label }}</span>

@@ -52,12 +52,18 @@ export interface AutonomyStep {
   index: number
   text: string
   checked_at: string | null
+  /** Included (with this check time) in the last report sent to Earth. */
+  in_last_report: boolean
 }
 
 export interface AutonomyResponse {
   autonomy: AutonomyState
   groups: { indicator: string; label: string; steps: AutonomyStep[] }[]
   report_sent_at: string | null
+  /** Steps frozen into the last report when it was sent. */
+  report_steps: { indicator: string; step_index: number; checked_at: string }[]
+  /** Steps checked since the last report (0 when nothing was sent yet). */
+  new_steps_since_report: number
 }
 
 export interface EnvironmentConfig {

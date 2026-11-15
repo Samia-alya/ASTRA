@@ -12,7 +12,7 @@ from app.analysis.autonomy import autonomy_state, episode_start
 from app.analysis.checks import compute_checks
 from app.config import autonomy_rule, indicators
 from app.database import get_session
-from app.models import Astronaut, AutonomyAction, Measurement, MeasurementCreate, ReportTransmission
+from app.models import Astronaut, AutonomyAction, Measurement, MeasurementCreate, ReportStep, ReportTransmission
 from app.validation import validate_timestamp, validate_value
 
 router = APIRouter(prefix="/astronauts", tags=["astronauts"])
@@ -146,13 +146,16 @@ def _episode_actions(astronaut_id: int, session: Session) -> list[AutonomyAction
     ).all()
 
 
-def _last_report(astronaut_id: int, session: Session) -> Optional[datetime]:
-    sent = session.exec(
-        select(func.max(ReportTransmission.sent_at)).where(
-            ReportTransmission.astronaut_id == astronaut_id, ReportTransmission.sent_at >= episode_start()
-        )
+def _last_report(astronaut_id: int, session: Session) -> Optional[ReportTransmission]:
+    return session.exec(
+        select(ReportTransmission)
+        .where(ReportTransmission.astronaut_id == astronaut_id, ReportTransmission.sent_at >= episode_start())
+        .order_by(ReportTransmission.sent_at.desc(), ReportTransmission.id.desc())
     ).first()
-    return _as_utc(sent) if sent else None
+
+
+def _report_steps(report: ReportTransmission, session: Session) -> list[ReportStep]:
+    return session.exec(select(ReportStep).where(ReportStep.report_id == report.id).order_by(ReportStep.checked_at)).all()
 
 
 @router.get("/{astronaut_id}/autonomy")
@@ -161,6 +164,10 @@ def get_autonomy(astronaut_id: int, session: Session = Depends(get_session)):
     astro = _get_astronaut(astronaut_id, session)
     statuses, overall = _statuses(astronaut_id, session)
     checked = {(a.indicator, a.step_index): _as_utc(a.timestamp) for a in _episode_actions(astronaut_id, session)}
+    report = _last_report(astronaut_id, session)
+    included = _report_steps(report, session) if report else []
+    # A step counts as sent if the last report included it with this same check time.
+    sent_keys = {(r.indicator, r.step_index, _as_utc(r.checked_at)) for r in included}
     meta = indicators()
     groups = []
     for s in statuses:
@@ -172,15 +179,20 @@ def get_autonomy(astronaut_id: int, session: Session = Depends(get_session)):
             "label": s["label"],
             "steps": [
                 {"index": i, "text": text,
-                 "checked_at": checked[(s["indicator"], i)].isoformat() if (s["indicator"], i) in checked else None}
+                 "checked_at": checked[(s["indicator"], i)].isoformat() if (s["indicator"], i) in checked else None,
+                 "in_last_report": (s["indicator"], i, checked.get((s["indicator"], i))) in sent_keys}
                 for i, text in enumerate(steps)
             ],
         })
-    sent = _last_report(astronaut_id, session)
+    new_since = sum(1 for g in groups for st in g["steps"] if st["checked_at"] and not st["in_last_report"])
     return {
         "autonomy": autonomy_state(overall, astro.environment),
         "groups": groups,
-        "report_sent_at": sent.isoformat() if sent else None,
+        "report_sent_at": _as_utc(report.sent_at).isoformat() if report else None,
+        # Steps frozen into the last report when it was sent (used for the reply and the step count).
+        "report_steps": [{"indicator": r.indicator, "step_index": r.step_index,
+                          "checked_at": _as_utc(r.checked_at).isoformat()} for r in included],
+        "new_steps_since_report": new_since if report else 0,
     }
 
 
@@ -221,9 +233,13 @@ def uncheck_step(astronaut_id: int, indicator: str, step_index: int, session: Se
 
 @router.post("/{astronaut_id}/autonomy/report", status_code=201)
 def send_report(astronaut_id: int, session: Session = Depends(get_session)):
-    """Record that a crew health report was sent to Earth now."""
+    """Record that a crew health report was sent to Earth now, with a snapshot of the steps checked so far."""
     _get_astronaut(astronaut_id, session)
+    actions = _episode_actions(astronaut_id, session)
     t = ReportTransmission(astronaut_id=astronaut_id, sent_at=datetime.now(timezone.utc))
     session.add(t)
+    session.flush()
+    for a in actions:
+        session.add(ReportStep(report_id=t.id, indicator=a.indicator, step_index=a.step_index, checked_at=a.timestamp))
     session.commit()
-    return {"report_sent_at": _as_utc(t.sent_at).isoformat()}
+    return {"report_sent_at": _as_utc(t.sent_at).isoformat(), "included_steps": len(actions)}

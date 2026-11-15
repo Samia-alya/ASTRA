@@ -38,6 +38,21 @@ export interface StatusResponse {
   disclaimer: string
 }
 
+export interface CheckItem {
+  indicator: string
+  label: string
+  unit: string
+  done: boolean
+  last_timestamp: string | null
+  hours_since_last: number | null
+}
+
+export interface ChecksResponse {
+  done_count: number
+  total: number
+  items: CheckItem[]
+}
+
 export interface IndicatorMeta {
   label: string
   short?: string

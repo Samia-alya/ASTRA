@@ -5,6 +5,8 @@ import HistoryChart from './components/HistoryChart.vue'
 import IndicatorGrid from './components/IndicatorGrid.vue'
 import MeasurementForm from './components/MeasurementForm.vue'
 import VitalRing from './components/VitalRing.vue'
+import FlightSurgeonReport from './components/FlightSurgeonReport.vue'
+import { envFor } from './environments'
 import type { Astronaut, IndicatorMeta, IndicatorStatus, Measurement, StatusResponse } from './types'
 import { fmt, LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, plainName } from './types'
 
@@ -16,16 +18,10 @@ const selected = ref<string | null>(null)
 const history = ref<Measurement[]>([])
 const error = ref('')
 
-// Environment -> display name and one-way signal delay to Earth.
-const ENVIRONMENTS: Record<string, { name: string; delay: string }> = {
-  station: { name: 'Low Earth orbit', delay: 'near real-time' },
-  lunar_base: { name: 'Lunar base', delay: '1.3 s one-way' },
-  mars_transit: { name: 'Mars transit', delay: '3–22 min one-way' },
-}
-const env = computed(() => {
-  const e = status.value?.astronaut.environment ?? ''
-  return ENVIRONMENTS[e] ?? { name: e, delay: '—' }
-})
+const reportOpen = ref(false)
+
+const env = computed(() => envFor(status.value?.astronaut.environment ?? ''))
+const isCritical = computed(() => status.value?.overall_level === 'critical')
 
 const greeting = computed(() => {
   const h = new Date().getHours()
@@ -172,7 +168,10 @@ watch(selected, loadHistory)
         <p>{{ selMeta?.why_in_space }}</p>
         <h2>What you can do now</h2>
         <p>{{ guidance }}</p>
-        <button class="primary" type="button">Message flight surgeon</button>
+        <button class="primary" :class="{ critical: isCritical }" type="button" aria-haspopup="dialog"
+          @click="reportOpen = true">
+          {{ isCritical ? 'Contact flight surgeon now' : 'Message flight surgeon' }}
+        </button>
       </div>
     </section>
 
@@ -181,6 +180,8 @@ watch(selected, loadHistory)
     </section>
 
     <p class="disclaimer">{{ status.disclaimer }}</p>
+
+    <FlightSurgeonReport :open="reportOpen" :status="status" :meta="meta" :env="env" @close="reportOpen = false" />
   </main>
 </template>
 
@@ -225,6 +226,7 @@ h1 { margin: -14px 0 0; font-family: var(--display); font-size: clamp(28px, 3.2v
   background: var(--text); color: var(--bg); font-weight: 600; font-size: 15px;
 }
 .guide .primary { margin-top: 16px; }
+.primary.critical { background: var(--critical); color: #1a0503; }
 
 .disclaimer { margin: 0; font-size: 12px; color: #8c8980; }
 .error { color: var(--critical); }

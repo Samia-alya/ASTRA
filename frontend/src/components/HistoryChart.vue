@@ -35,16 +35,16 @@ function draw() {
   if (props.baseline !== null && range) {
     traces.push({
       x: range, y: [props.baseline, props.baseline], type: 'scatter', mode: 'lines',
-      name: 'Your baseline', line: { dash: 'dash', color: '#5c606b', width: 1.5 }, hoverinfo: 'skip',
+      name: 'Your baseline', line: { dash: 'dash', color: '#6f8f8b', width: 1.5 }, hoverinfo: 'skip',
     })
   }
   Plotly.react(el.value, traces as Plotly.Data[], {
     paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
-    font: { color: '#a7a49c', family: 'Inter, sans-serif', size: 12 },
+    font: { color: '#9fb8b5', family: 'Inter, sans-serif', size: 12 },
     margin: { t: 10, r: 10, b: 30, l: 40 }, showlegend: false,
-    xaxis: { gridcolor: '#1f2229', zeroline: false, tickformat: '%b %d', range, autorange: !range },
-    yaxis: { gridcolor: '#1f2229', zeroline: false },
-    hoverlabel: { bgcolor: '#1e2128', bordercolor: '#4a4e59', font: { color: '#eceae4' } },
+    xaxis: { gridcolor: '#16292d', zeroline: false, tickformat: '%b %d', range, autorange: !range },
+    yaxis: { gridcolor: '#16292d', zeroline: false },
+    hoverlabel: { bgcolor: '#123036', bordercolor: '#1a3338', font: { color: '#e6f4f1' } },
   }, { displayModeBar: false, responsive: true })
 }
 

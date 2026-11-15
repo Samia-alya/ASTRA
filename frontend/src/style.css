@@ -1,35 +1,42 @@
-/* Houston Pulse — "Orbit" theme */
+/* Houston Pulse — "Orbit Teal" theme */
 :root {
-  --bg: #101114;
-  --panel: #16181d;
-  --panel-2: #1e2128;
-  --border: #262931;
-  --border-strong: #4a4e59;
-  --text: #eceae4;
-  --text-2: #d9d6ce;
-  --muted: #a7a49c;
-  --nominal: #8fb8e8;
-  --watch: #f5a524;
-  --critical: #ff6b5e;
-  --display: 'Unbounded', system-ui, sans-serif;
+  --bg: #081316;
+  --panel: #0e1e22;          /* cards */
+  --panel-2: #123036;        /* selected surface */
+  --border: #1a3338;
+  --border-strong: #2a4a50;  /* hover borders */
+  --track: #10262a;          /* ring track and orbit */
+  --text: #e6f4f1;
+  --text-2: #c5d8d5;
+  --muted: #9fb8b5;
+  --accent: #2dd4bf;
+  --accent-2: #5eead4;       /* highlights, selected borders */
+  --nominal: #2dd4bf;
+  --watch: #fbbf24;
+  --critical: #fb7185;
+  /* Dark text on filled teal / amber / rose (all ≥ 6.7:1) */
+  --on-accent: #04201c;
+  --on-watch: #1a1203;
+  --on-critical: #2a0a10;
+  --display: 'Sora', system-ui, sans-serif;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--text);
   background: var(--bg);
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; }
-#app { max-width: 1360px; margin: 0 auto; padding: 28px 40px 48px; }
-@media (max-width: 700px) { #app { padding: 20px 16px 40px; } }
+body { margin: 0; background: var(--bg); }
+#app { max-width: 1360px; margin: 0 auto; padding: 28px 40px 32px; }
+@media (max-width: 700px) { #app { padding: 20px 16px 28px; } }
 
 button { font: inherit; }
-:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 
 /* Status helpers shared by components */
 .tag { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 99px; white-space: nowrap; }
-.tag.normal { background: #22324a; color: #bfd8f5; }
-.tag.attention { background: var(--watch); color: #1a1203; }
-.tag.critical { background: var(--critical); color: #1a0503; }
+.tag.normal { background: var(--nominal); color: var(--on-accent); }
+.tag.attention { background: var(--watch); color: var(--on-watch); }
+.tag.critical { background: var(--critical); color: var(--on-critical); }
 .tag.no_data { background: var(--border); color: var(--muted); }
 
 .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }

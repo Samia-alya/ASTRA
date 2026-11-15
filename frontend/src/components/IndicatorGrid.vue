@@ -26,12 +26,12 @@ const ARROW = { up: '↑', down: '↓', stable: '→' }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .item {
   display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 12px;
-  width: 100%; min-height: 56px; padding: 10px 14px; border-radius: 14px;
-  border: 1.5px solid var(--border); background: var(--panel); color: var(--text); text-align: left; cursor: pointer;
+  width: 100%; min-height: 58px; padding: 10px 14px; border-radius: 16px;
+  border: 1px solid var(--border); background: var(--panel); color: var(--text); text-align: left; cursor: pointer;
   transition: border-color .2s, background .2s;
 }
 .item:hover { border-color: var(--border-strong); }
-.item.on { border-color: var(--text); background: var(--panel-2); }
+.item.on { border-color: var(--accent-2); background: var(--panel-2); }
 .body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .name { font-size: 14px; color: var(--muted); }
 .value { font-size: 18px; font-weight: 600; }

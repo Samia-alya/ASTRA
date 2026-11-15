@@ -88,7 +88,9 @@ function onKey(e: KeyboardEvent, key?: string) {
 
 <template>
   <svg viewBox="-90 -40 780 680" class="ring" role="group" aria-label="Vital ring">
-    <circle :cx="C" :cy="C" :r="R" fill="none" stroke="#1c1e24" stroke-width="12" />
+    <circle :cx="C" :cy="C" :r="R + 56" fill="none" stroke="var(--track)" stroke-width="2" stroke-dasharray="2 8"
+      stroke-linecap="round" class="orbit" />
+    <circle :cx="C" :cy="C" :r="R" fill="none" stroke="var(--track)" stroke-width="12" />
 
     <g v-for="a in arcs" :key="a.key" class="arc" role="button" tabindex="0" :aria-label="a.aria"
       @click="emit('select', a.key)" @keydown="onKey($event, a.key)">
@@ -98,8 +100,8 @@ function onKey(e: KeyboardEvent, key?: string) {
     </g>
 
     <g transform="translate(205 120) scale(0.73)">
-      <ellipse cx="130" cy="38" rx="28" ry="34" fill="#23262e" />
-      <path fill="#23262e"
+      <ellipse cx="130" cy="38" rx="28" ry="34" fill="#143036" />
+      <path fill="#143036"
         d="M116 70 L144 70 L146 84 Q188 88 198 106 L214 232 Q216 244 206 246 L200 246 L184 130 L180 218 L186 276 L178 460 L154 460 L140 290 L120 290 L106 460 L82 460 L74 276 L80 218 L76 130 L60 246 L54 246 Q44 244 46 232 L62 106 Q72 88 114 84 Z" />
       <g v-for="z in zones" :key="z.zone" class="zone" role="button" tabindex="0" :aria-label="z.name"
         @click="z.worst && emit('select', z.worst.indicator)" @keydown="onKey($event, z.worst?.indicator)">

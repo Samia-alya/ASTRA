@@ -15,7 +15,7 @@ function ago(h: number | null): string {
 
 function detail(c: CheckItem): string {
   if (c.done) return `measured ${ago(c.hours_since_last)}`
-  return c.hours_since_last === null ? 'Due — never measured' : `Due — last measured ${ago(c.hours_since_last)}`
+  return c.hours_since_last === null ? 'Due · never measured' : `Due · ${Math.round(c.hours_since_last)} h`
 }
 </script>
 
@@ -31,7 +31,7 @@ function detail(c: CheckItem): string {
       <li v-for="c in checks.items" :key="c.indicator" :class="{ due: !c.done }">
         <svg v-if="c.done" class="icon" viewBox="0 0 20 20" aria-hidden="true">
           <circle cx="10" cy="10" r="9" fill="var(--nominal)" />
-          <path d="M6 10.5 L8.8 13.2 L14 7.5" fill="none" stroke="#101114" stroke-width="2"
+          <path d="M6 10.5 L8.8 13.2 L14 7.5" fill="none" stroke="var(--on-accent)" stroke-width="2.2"
             stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         <svg v-else class="icon" viewBox="0 0 20 20" aria-hidden="true">
@@ -41,7 +41,8 @@ function detail(c: CheckItem): string {
         </svg>
         <div class="text">
           <span class="name">{{ c.label }}<span class="sr-only">: {{ c.done ? 'done' : 'due' }}</span></span>
-          <span class="when">{{ detail(c) }}</span>
+          <span class="when">{{ detail(c) }}<span v-if="!c.done && c.hours_since_last !== null" class="sr-only">
+              since the last measurement</span></span>
         </div>
         <button v-if="!c.done" type="button" class="log" @click="emit('log', c.indicator)">
           Log now<span class="sr-only"> {{ c.label }}</span>
@@ -56,7 +57,7 @@ function detail(c: CheckItem): string {
 .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .count { font-size: 14px; color: var(--text-2); }
-.bar { height: 6px; border-radius: 99px; background: var(--border); overflow: hidden; }
+.bar { height: 4px; border-radius: 99px; background: var(--track); overflow: hidden; }
 .bar span { display: block; height: 100%; background: var(--nominal); border-radius: 99px; transition: width .3s; }
 
 ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }

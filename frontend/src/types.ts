@@ -90,8 +90,8 @@ export const LEVEL_LABEL: Record<Level, string> = {
   no_data: 'No data',
 }
 export const LEVEL_COLOR: Record<Level, string> = {
-  normal: '#8fb8e8',
-  attention: '#f5a524',
-  critical: '#ff6b5e',
-  no_data: '#4a4e59',
+  normal: '#2dd4bf',
+  attention: '#fbbf24',
+  critical: '#fb7185',
+  no_data: '#2a4a50',
 }

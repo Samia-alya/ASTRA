@@ -158,10 +158,10 @@ function send() {
 
 .banner {
   margin: 0; padding: 12px 16px; border-radius: 12px;
-  background: var(--critical); color: #1a0503; font-size: 15px; line-height: 1.45;
+  background: var(--critical); color: var(--on-critical); font-size: 15px; line-height: 1.45;
 }
 
-h2 { margin: 0; font-family: var(--display); font-size: 20px; font-weight: 500; line-height: 1.25; }
+h2 { margin: 0; font-family: var(--display); font-size: 20px; font-weight: 600; line-height: 1.25; }
 h3 { margin: 8px 0 0; font-size: 15px; font-weight: 600; }
 
 .facts {
@@ -207,7 +207,7 @@ textarea::placeholder { color: var(--muted); }
 
 .sent {
   margin: 0; padding: 12px 16px; border-radius: 12px; font-size: 15px;
-  background: #22324a; color: #dbe9fa;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--accent);
 }
 .footer { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
 
@@ -220,8 +220,8 @@ textarea::placeholder { color: var(--muted); }
   font-weight: 600; font-size: 15px; border: 1.5px solid var(--border-strong);
   background: transparent; color: var(--text);
 }
-.btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
-.btn.danger { background: var(--critical); color: #1a0503; border-color: var(--critical); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.danger { background: var(--critical); color: var(--on-critical); border-color: var(--critical); }
 .btn.ghost { flex: 0 1 110px; }
 
 @media (max-width: 480px) {

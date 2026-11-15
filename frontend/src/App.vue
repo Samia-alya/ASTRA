@@ -58,17 +58,19 @@ function deviation(i: IndicatorStatus) {
 }
 
 
+// Split in parts so the signal count can be highlighted; the sentence itself is unchanged.
 const headline = computed(() => {
   const list = flagged.value
-  if (!status.value) return ''
-  if (!list.length) return 'All signals are steady today.'
+  if (!status.value) return { lead: '', count: '', tail: '' }
+  if (!list.length) return { lead: 'All signals are steady today.', count: '', tail: '' }
   const top = list[0]!
   const dir = top.value !== null && top.baseline !== null && top.value < top.baseline ? 'down' : 'up'
   const first = top.level === 'critical'
     ? `Your ${plainName(top.label)} needs attention now.`
     : `Your ${plainName(top.label)} is ${dir}.`
-  const rest = list.length === 1 ? 'One signal needs a look.' : `${list.length} signals need a look.`
-  return `${first} ${rest}`
+  return list.length === 1
+    ? { lead: first, count: 'One signal', tail: 'needs a look.' }
+    : { lead: first, count: `${list.length} signals`, tail: 'need a look.' }
 })
 
 const sel = computed(() => status.value?.indicators.find((i) => i.indicator === selected.value) ?? null)
@@ -187,7 +189,8 @@ watch(selected, loadHistory)
       </div>
       <div class="intro">
         <span class="hello">{{ greeting }}, {{ status.astronaut.name }}</span>
-        <h1>{{ headline }}</h1>
+        <h1>{{ headline.lead }}<template v-if="headline.count"> <span class="count">{{ headline.count }}</span>
+            {{ headline.tail }}</template></h1>
         <IndicatorGrid :indicators="status.indicators" :meta="meta" :selected="selected" @select="selected = $event" />
       </div>
     </section>
@@ -225,7 +228,7 @@ watch(selected, loadHistory)
           </div>
           <div>
             <dt>Change</dt>
-            <dd>{{ changeText }}</dd>
+            <dd :style="{ color: sel.level === 'no_data' ? undefined : LEVEL_COLOR[sel.level] }">{{ changeText }}</dd>
           </div>
           <div>
             <dt>Range</dt>
@@ -259,10 +262,13 @@ watch(selected, loadHistory)
       </div>
     </section>
 
-    <p class="disclaimer">{{ status.disclaimer }}</p>
-
     <FlightSurgeonReport :open="reportOpen" :status="status" :meta="meta" :env="env" @close="reportOpen = false" />
   </main>
+
+  <footer class="foot">
+    <span>Built for the NASA Space Apps Challenge 2026 · Space context: NASA Human Research Program</span>
+    <span>Simulated data · Monitoring aid, not a medical diagnosis</span>
+  </footer>
 </template>
 
 <style scoped>
@@ -270,10 +276,13 @@ watch(selected, loadHistory)
 .brand { display: flex; align-items: center; gap: 12px; font-family: var(--display); font-size: 18px; font-weight: 700; }
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; font-size: 14px; color: var(--muted); }
 .crew select {
-  font: inherit; color: var(--text); background: var(--panel); border: 1.5px solid var(--border);
-  border-radius: 10px; min-height: 40px; padding: 0 10px;
+  font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; min-height: 44px; padding: 0 12px;
 }
-.pill { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 99px; border: 1.5px solid var(--muted); }
+.pill {
+  font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 99px;
+  border: 1px solid var(--accent); color: var(--accent);
+}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 main { display: flex; flex-direction: column; gap: 24px; margin-top: 24px; }
@@ -282,33 +291,30 @@ main { display: flex; flex-direction: column; gap: 24px; margin-top: 24px; }
 .ring-wrap { flex: 1 1 440px; min-width: 0; }
 .intro { flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
 .hello { font-size: 14px; color: var(--muted); }
-h1 { margin: -14px 0 0; font-family: var(--display); font-size: clamp(28px, 3.2vw, 40px); line-height: 1.12; font-weight: 500; }
+h1 { margin: -14px 0 0; font-family: var(--display); font-size: clamp(28px, 3.2vw, 40px); line-height: 1.15; font-weight: 600; }
+h1 .count { color: var(--accent-2); }
 
 .detail { display: flex; flex-wrap: wrap; gap: 20px; }
-.card { background: var(--panel); border-radius: 20px; padding: 24px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 24px; }
 .chart-card { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .chart-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .big { display: flex; flex-direction: column; gap: 4px; }
 .label { font-size: 14px; color: var(--muted); }
-.num { font-family: var(--display); font-size: 48px; font-weight: 500; line-height: 1; }
+.num { font-family: var(--display); font-size: 48px; font-weight: 600; line-height: 1; }
 .num small { font-size: 20px; color: var(--muted); }
 .state { display: flex; align-items: center; gap: 12px; }
 .delta { font-size: 15px; color: var(--text-2); }
 .reasons { margin: 0; padding-left: 18px; font-size: 14px; color: var(--text-2); line-height: 1.5; }
-.periods {
-  display: inline-flex; align-self: flex-start; gap: 4px; padding: 4px;
-  background: var(--bg); border: 1.5px solid var(--border); border-radius: 14px;
-}
+.periods { display: flex; flex-wrap: wrap; gap: 8px; }
 .periods button {
-  min-height: 44px; padding: 0 16px; border: none; border-radius: 10px; cursor: pointer;
+  min-height: 44px; padding: 0 16px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer;
   background: transparent; color: var(--text-2); font-size: 14px; font-weight: 600;
 }
-.periods button:hover { background: var(--panel-2); }
-.periods button[aria-pressed='true'] { background: var(--text); color: var(--bg); }
+.periods button:hover { border-color: var(--border-strong); background: var(--panel-2); }
+.periods button[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
-.stats {
-  margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px 20px;
-}
+.stats { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 20px; }
+@media (max-width: 560px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .stats div { display: flex; flex-direction: column; gap: 2px; }
 .stats dt { font-size: 12px; color: var(--muted); }
 .stats dd { margin: 0; font-size: 16px; font-weight: 600; }
@@ -322,27 +328,30 @@ h1 { margin: -14px 0 0; font-family: var(--display); font-size: clamp(28px, 3.2v
 .guide p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-2); }
 .primary {
   margin-top: auto; min-height: 48px; border-radius: 14px; border: none; cursor: pointer;
-  background: var(--text); color: var(--bg); font-weight: 600; font-size: 15px;
+  background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 15px;
 }
 .guide .primary { margin-top: 16px; }
-.primary.critical { background: var(--critical); color: #1a0503; }
+.primary.critical { background: var(--critical); color: var(--on-critical); }
 
 .reminder {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 16px;
-  padding: 8px 8px 8px 16px; border-radius: 14px; border: 1.5px solid var(--watch);
-  background: #2a2113; color: var(--text); font-size: 14px;
+  padding: 8px 8px 8px 16px; border-radius: 16px; border: 1px solid #5c4a12;
+  background: #2a2410; color: var(--text); font-size: 14px;
 }
 .reminder-icon { width: 18px; height: 18px; flex: none; color: var(--watch); }
 .reminder-text { flex: 1 1 220px; }
 .reminder button {
   min-height: 44px; padding: 0 16px; border-radius: 10px; border: none; cursor: pointer;
-  background: var(--watch); color: #1a1203; font-weight: 600; font-size: 14px;
+  background: var(--watch); color: var(--on-watch); font-weight: 600; font-size: 14px;
 }
 
 .log-row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
 .form-card { flex: 2 1 440px; min-width: 0; }
 .checks-card { flex: 1 1 320px; min-width: 0; }
 
-.disclaimer { margin: 0; font-size: 12px; color: #8c8980; }
+.foot {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px;
+  margin-top: 40px; padding-top: 16px; border-top: 1px solid #16292d; font-size: 12px; color: #7f9996;
+}
 .error { color: var(--critical); }
 </style>

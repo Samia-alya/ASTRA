@@ -61,6 +61,7 @@ backend/                       FastAPI + SQLite (Python)
   app/models.py                tables: Astronaut, Measurement
   app/routers/                 REST endpoints
   app/analysis/anomaly.py      baseline + trend + documented thresholds
+  app/analysis/checks.py       today's checks (one measurement per indicator per 24 h)
   app/config/indicators.json   labels, explanations, guidance, sources
   app/config/thresholds.json   documented reference thresholds (with sources)
   scripts/generate_data.py     simulated demo data
@@ -68,7 +69,7 @@ backend/                       FastAPI + SQLite (Python)
 frontend/                      Vue 3 + TypeScript + Vite + Plotly
   src/App.vue                  page layout and headline logic
   src/components/VitalRing.vue ring + body silhouette
-  src/components/IndicatorGrid.vue, HistoryChart.vue, MeasurementForm.vue
+  src/components/IndicatorGrid.vue, HistoryChart.vue, MeasurementForm.vue, TodayChecks.vue
   src/api.ts, src/types.ts     API client and shared types
 ```
 
@@ -101,6 +102,7 @@ App: http://localhost:5173
 | GET | `/astronauts` | list crew members |
 | GET | `/astronauts/{id}/status` | per indicator: `value`, `baseline`, `level`, `trend`, `reasons[]`, plus `overall_level` |
 | GET | `/astronauts/{id}/measurements?indicator=&start=&end=` | history |
+| GET | `/astronauts/{id}/checks` | today's checks: per indicator `done` (measured in the last 24 h), `last_timestamp`, `hours_since_last`, plus `done_count` / `total` |
 | POST | `/astronauts/{id}/measurements` | body `{indicator, value, timestamp?}`, stored with `source: "manual"` |
 | GET | `/indicators` | metadata, explanations, guidance, sources |
 

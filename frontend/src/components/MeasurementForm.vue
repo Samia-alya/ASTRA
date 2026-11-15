@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { api } from '../api'
 import type { IndicatorMeta } from '../types'
 
@@ -10,8 +10,22 @@ const indicator = ref(props.preset ?? Object.keys(props.indicators)[0] ?? '')
 const value = ref<number | null>(null)
 const error = ref('')
 const busy = ref(false)
+const valueInput = ref<HTMLInputElement | null>(null)
 
 watch(() => props.preset, (p) => { if (p) indicator.value = p })
+
+/** Preselect an indicator, then bring the value input into view and focus it. */
+async function logNow(key: string) {
+  indicator.value = key
+  error.value = ''
+  await nextTick()
+  const input = valueInput.value
+  if (!input) return
+  const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  input.scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' })
+  input.focus({ preventScroll: true })
+}
+defineExpose({ logNow })
 
 async function submit() {
   error.value = ''
@@ -43,7 +57,7 @@ async function submit() {
     </label>
     <label class="field">
       <span>Value</span>
-      <input v-model.number="value" type="number" step="any" inputmode="decimal" placeholder="e.g. 72" />
+      <input ref="valueInput" v-model.number="value" type="number" step="any" inputmode="decimal" placeholder="e.g. 72" />
     </label>
     <button :disabled="busy">{{ busy ? 'Saving…' : 'Save' }}</button>
     <p v-if="error" class="error" role="alert">{{ error }}</p>

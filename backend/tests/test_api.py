@@ -59,3 +59,37 @@ def test_validation_errors(client):
     assert client.post("/astronauts/2/measurements", json={"indicator": "nope", "value": 1}).status_code == 422
     assert client.post("/astronauts/2/measurements", json={"indicator": "mood"}).status_code == 422
     assert client.get("/astronauts/999/status").status_code == 404
+
+
+def _due(client, astronaut_id):
+    body = client.get(f"/astronauts/{astronaut_id}/checks").json()
+    return body, {i["indicator"] for i in body["items"] if not i["done"]}
+
+
+def test_checks_rivera_has_two_due(client):
+    body, due = _due(client, 1)
+    assert due == {"glucose", "temperature"}
+    assert body["total"] == 7 and body["done_count"] == 5
+    item = next(i for i in body["items"] if i["indicator"] == "glucose")
+    assert set(item) == {"indicator", "label", "unit", "done", "last_timestamp", "hours_since_last"}
+    assert item["hours_since_last"] > 24
+
+
+def test_checks_tanaka_all_done(client):
+    body, due = _due(client, 2)
+    assert due == set() and body["done_count"] == body["total"] == 7
+
+
+def test_checks_logging_marks_done(client):
+    assert client.post("/astronauts/1/measurements", json={"indicator": "glucose", "value": 95}).status_code == 201
+    _, due = _due(client, 1)
+    assert due == {"temperature"}
+
+
+def test_checks_unknown_astronaut(client):
+    assert client.get("/astronauts/999/checks").status_code == 404
+
+
+def test_rivera_still_attention_on_scenario(client):
+    levels = {i["indicator"]: i["level"] for i in client.get("/astronauts/1/status").json()["indicators"]}
+    assert levels["sleep_hours"] == levels["mood"] == levels["heart_rate"] == "attention"

@@ -1,4 +1,4 @@
-import type { Astronaut, ChecksResponse, IndicatorMeta, Measurement, StatusResponse } from './types'
+import type { Astronaut, ChecksResponse, Device, IndicatorMeta, Measurement, StatusResponse } from './types'
 
 const BASE = '/api'
 
@@ -17,6 +17,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   astronauts: () => request<Astronaut[]>('/astronauts'),
   status: (id: number) => request<StatusResponse>(`/astronauts/${id}/status`),
+  devices: (id: number) => request<Device[]>(`/astronauts/${id}/devices`),
   checks: (id: number) => request<ChecksResponse>(`/astronauts/${id}/checks`),
   indicators: () => request<Record<string, IndicatorMeta>>('/indicators'),
   measurements: (id: number, indicator: string) =>

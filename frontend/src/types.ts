@@ -15,7 +15,26 @@ export interface Measurement {
   indicator: string
   value: number
   timestamp: string
-  source: 'simulated' | 'manual'
+  source: 'simulated' | 'manual' | 'device'
+  device_id: number | null
+  device_name: string | null
+}
+
+/** Where the latest value of an indicator comes from. */
+export interface LastSource {
+  type: 'simulated' | 'manual' | 'device'
+  device_name: string | null
+}
+
+/** A paired device. Every device in this app is SIMULATED; the API never returns its token. */
+export interface Device {
+  id: number
+  kind: string
+  name: string
+  simulated: boolean
+  last_seen: string | null
+  status: 'online' | 'offline'
+  indicators: string[]
 }
 
 export interface IndicatorStatus {
@@ -29,6 +48,7 @@ export interface IndicatorStatus {
   trend: 'up' | 'down' | 'stable'
   reasons: string[]
   last_timestamp: string | null
+  last_source: LastSource | null
 }
 
 export interface StatusResponse {

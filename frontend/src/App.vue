@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from './api'
 import HistoryChart from './components/HistoryChart.vue'
 import IndicatorGrid from './components/IndicatorGrid.vue'
 import MeasurementForm from './components/MeasurementForm.vue'
 import TodayChecks from './components/TodayChecks.vue'
+import DevicesCard from './components/DevicesCard.vue'
+import BodyZonePanel from './components/BodyZonePanel.vue'
+import { BODY_ZONES, ZONE_ORDER } from './bodyZones'
 import VitalRing from './components/VitalRing.vue'
 import FlightSurgeonReport from './components/FlightSurgeonReport.vue'
 import { envFor } from './environments'
-import type { Astronaut, ChecksResponse, IndicatorMeta, IndicatorStatus, Measurement, StatusResponse } from './types'
+import type { Astronaut, ChecksResponse, Device, IndicatorMeta, IndicatorStatus, Measurement, StatusResponse } from './types'
 import { fmt, LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, plainName } from './types'
 import { periodStats } from './stats'
+import { sourceText, useNow } from './time'
 
 const astronauts = ref<Astronaut[]>([])
 const astronautId = ref<number | null>(null)
@@ -20,6 +24,53 @@ const selected = ref<string | null>(null)
 const history = ref<Measurement[]>([])
 const error = ref('')
 const checks = ref<ChecksResponse | null>(null)
+const devices = ref<Device[]>([])
+
+// --- Body zone info panel (opened by clicking a body part on the ring) ---
+const openZone = ref<string | null>(null)
+const ring = ref<InstanceType<typeof VitalRing> | null>(null)
+const zonePanel = ref<InstanceType<typeof BodyZonePanel> | null>(null)
+let zoneOpener: HTMLElement | SVGElement | null = null
+
+function worstInZone(zone: string) {
+  return (status.value?.indicators ?? [])
+    .filter((i) => i.body_zone === zone)
+    .sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level])[0]
+}
+
+/** Open a body zone's panel; for a monitored zone, also select its worst indicator (as before). */
+async function onZone(zone: string) {
+  const wasOpen = openZone.value !== null
+  const active = document.activeElement
+  if (!wasOpen) zoneOpener = active instanceof HTMLElement || active instanceof SVGElement ? active : null
+  openZone.value = zone
+  const worst = BODY_ZONES[zone]?.monitored ? worstInZone(zone) : undefined
+  if (worst) selected.value = worst.indicator
+  await nextTick()
+  // The panel opens below the ring, often off screen on a laptop: bring it into view, then focus it.
+  zonePanel.value?.reveal()
+  zonePanel.value?.focusHeading()
+}
+
+async function closeZone() {
+  const zone = openZone.value
+  openZone.value = null
+  await nextTick()
+  if (zoneOpener?.isConnected) zoneOpener.focus()
+  else if (zone) ring.value?.focusZone(zone)
+  zoneOpener = null
+}
+
+// Selecting an indicator elsewhere (arc, grid, panel row) moves an open panel to that indicator's zone.
+watch(selected, (key) => {
+  if (!openZone.value || !key) return
+  const zone = status.value?.indicators.find((i) => i.indicator === key)?.body_zone
+  if (zone && zone !== openZone.value && BODY_ZONES[zone]) openZone.value = zone
+})
+const now = useNow()
+// Indicators that just received a new device value, highlighted for a moment.
+const updated = ref<string[]>([])
+let updatedTimer: number | undefined
 const form = ref<InstanceType<typeof MeasurementForm> | null>(null)
 
 const dueChecks = computed(() => checks.value?.items.filter((c) => !c.done) ?? [])
@@ -118,9 +169,10 @@ async function loadStatus() {
   try {
     error.value = ''
     const id = astronautId.value
-    const [s, c] = await Promise.all([api.status(id), api.checks(id)])
+    const [s, c, d] = await Promise.all([api.status(id), api.checks(id), api.devices(id)])
     status.value = s
     checks.value = c
+    devices.value = d
     if (!selected.value) selected.value = flagged.value[0]?.indicator ?? status.value.indicators[0]?.indicator ?? null
     await loadHistory()
   } catch (e) {
@@ -142,7 +194,63 @@ onMounted(async () => {
   }
 })
 
-watch(astronautId, () => { selected.value = null; loadStatus() })
+watch(astronautId, () => { selected.value = null; updated.value = []; loadStatus() })
+
+// --- Live updates: every 5 s while the tab is visible, never two refreshes at once. ---
+const REFRESH_MS = 5000
+let refreshing = false
+let refreshTimer: number | undefined
+
+function markUpdated(prev: StatusResponse, next: StatusResponse) {
+  if (prev.astronaut.id !== next.astronaut.id) return
+  const keys = next.indicators
+    .filter((n) => {
+      const p = prev.indicators.find((i) => i.indicator === n.indicator)
+      return n.last_source?.type === 'device' && p && p.last_timestamp !== n.last_timestamp
+    })
+    .map((n) => n.indicator)
+  if (!keys.length) return
+  updated.value = keys
+  window.clearTimeout(updatedTimer)
+  updatedTimer = window.setTimeout(() => { updated.value = [] }, 1500)
+}
+
+async function refresh() {
+  const id = astronautId.value
+  if (id === null || !status.value || refreshing || document.hidden) return
+  refreshing = true
+  try {
+    const sel = selected.value
+    const [s, c, d, h] = await Promise.all([
+      api.status(id), api.checks(id), api.devices(id), sel ? api.measurements(id, sel) : Promise.resolve(null),
+    ])
+    if (id !== astronautId.value) return // the crew member changed meanwhile: drop stale data
+    if (status.value) markUpdated(status.value, s)
+    status.value = s
+    checks.value = c
+    devices.value = d
+    if (h && sel === selected.value) history.value = h
+    error.value = ''
+  } catch (e) {
+    error.value = `Live update failed: ${(e as Error).message}`
+  } finally {
+    refreshing = false
+  }
+}
+
+function onVisibility() {
+  if (!document.hidden) refresh()
+}
+
+onMounted(() => {
+  refreshTimer = window.setInterval(refresh, REFRESH_MS)
+  document.addEventListener('visibilitychange', onVisibility)
+})
+onBeforeUnmount(() => {
+  window.clearInterval(refreshTimer)
+  window.clearTimeout(updatedTimer)
+  document.removeEventListener('visibilitychange', onVisibility)
+})
 watch(selected, loadHistory)
 </script>
 
@@ -181,13 +289,27 @@ watch(selected, loadHistory)
   <main v-if="status">
     <section class="hero">
       <div class="ring-wrap">
-        <VitalRing :indicators="status.indicators" :meta="meta" :selected="selected" @select="selected = $event" />
+        <VitalRing ref="ring" :indicators="status.indicators" :meta="meta" :selected="selected" :open-zone="openZone"
+          @select="selected = $event" @zone="onZone" />
+        <div class="zone-hint">
+          <p>Tap a body part to learn more.</p>
+          <div class="zone-chips" role="group" aria-label="Body parts">
+            <button v-for="z in ZONE_ORDER" :key="z" type="button" :class="{ muted: !BODY_ZONES[z]!.monitored }"
+              :aria-expanded="openZone === z" aria-controls="body-zone-panel" @click="onZone(z)">
+              {{ BODY_ZONES[z]!.short }}
+            </button>
+          </div>
+        </div>
+        <BodyZonePanel v-if="openZone" ref="zonePanel" :zone="openZone" :indicators="status.indicators"
+          :selected="selected" @select="selected = $event" @close="closeZone" />
       </div>
       <div class="intro">
         <span class="hello">{{ greeting }}, {{ status.astronaut.name }}</span>
-        <h1>{{ headline.lead }}<template v-if="headline.count"> <span class="count">{{ headline.count }}</span>
-            {{ headline.tail }}</template></h1>
-        <IndicatorGrid :indicators="status.indicators" :meta="meta" :selected="selected" @select="selected = $event" />
+        <!-- Explicit {{ ' ' }}: Vue drops a whitespace-only text node at the start of a <template> block. -->
+        <h1>{{ headline.lead }}<template v-if="headline.count">{{ ' ' }}<span class="count">{{ headline.count
+          }}</span>{{ ' ' + headline.tail }}</template></h1>
+        <IndicatorGrid :indicators="status.indicators" :meta="meta" :selected="selected" :now="now" :updated="updated"
+          @select="selected = $event" />
       </div>
     </section>
 
@@ -196,6 +318,8 @@ watch(selected, loadHistory)
         <div class="chart-head">
           <div class="big">
             <span class="label">{{ sel.label }} · history</span>
+            <span v-if="sel.last_source" class="src" :class="sel.last_source.type">
+              {{ sourceText(sel.last_source, sel.last_timestamp, now) }}</span>
             <span class="num">{{ fmt(sel.value, sel.unit) }}<small> {{ sel.unit }}</small></span>
           </div>
           <div class="state">
@@ -256,6 +380,9 @@ watch(selected, loadHistory)
       <div class="card checks-card" v-if="checks">
         <TodayChecks :checks="checks" @log="logNow" />
       </div>
+      <div class="card devices-card">
+        <DevicesCard :devices="devices" :meta="meta" :now="now" />
+      </div>
     </section>
 
     <FlightSurgeonReport :open="reportOpen" :status="status" :meta="meta" :env="env" @close="reportOpen = false" />
@@ -285,6 +412,16 @@ main { display: flex; flex-direction: column; gap: 24px; margin-top: 24px; }
 
 .hero { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; }
 .ring-wrap { flex: 1 1 440px; min-width: 0; }
+.zone-hint { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; }
+.zone-hint p { margin: 0; font-size: 13px; color: var(--muted); }
+.zone-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.zone-chips button {
+  min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--border); cursor: pointer;
+  background: transparent; color: var(--text-2); font-size: 13px; font-weight: 600;
+}
+.zone-chips button.muted { color: var(--muted); border-style: dashed; }
+.zone-chips button:hover { border-color: var(--border-strong); background: var(--panel-2); }
+.zone-chips button[aria-expanded='true'] { border-color: var(--accent-2); border-style: solid; background: var(--panel-2); color: var(--text); }
 .intro { flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
 .hello { font-size: 14px; color: var(--muted); }
 h1 { margin: -14px 0 0; font-family: var(--display); font-size: clamp(28px, 3.2vw, 40px); line-height: 1.15; font-weight: 600; }
@@ -343,7 +480,10 @@ h1 .count { color: var(--accent-2); }
 
 .log-row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
 .form-card { flex: 2 1 440px; min-width: 0; }
-.checks-card { flex: 1 1 320px; min-width: 0; }
+.checks-card { flex: 1 1 300px; min-width: 0; }
+.devices-card { flex: 1 1 300px; min-width: 0; }
+.src { font-size: 13px; color: var(--muted); }
+.src.device { color: var(--accent); }
 
 .foot {
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px;

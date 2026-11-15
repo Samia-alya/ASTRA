@@ -53,18 +53,27 @@ Space context for each indicator comes from the [NASA Human Research Program ris
 | Cmdr. A. Rivera | Lunar base | Sleep and mood dropping, resting heart rate rising | Watch |
 | Eng. L. Moreau | Mars transit (3–22 min delay) | Temperature rising past 38 °C, blood pressure trending up | Critical |
 
+Each crew member also gets two **simulated** devices (see [Devices](#devices-simulated)). The generator prints
+each device's id and token at the end.
+
+> **Schema change (devices):** the SQLite schema now has a `device` table and a `measurement.device_id` column.
+> If you have an older `backend/houston_pulse.db`, delete it and rerun `python -m scripts.generate_data`
+> (the generator also drops and recreates the tables itself), then restart the API.
+
 ## Structure
 
 ```
 backend/                       FastAPI + SQLite (Python)
   app/main.py                  app entry point, CORS, routers
-  app/models.py                tables: Astronaut, Measurement
+  app/models.py                tables: Astronaut, Device, Measurement
   app/routers/                 REST endpoints
   app/analysis/anomaly.py      baseline + trend + documented thresholds
   app/analysis/checks.py       today's checks (one measurement per indicator per 24 h)
   app/config/indicators.json   labels, explanations, guidance, sources
   app/config/thresholds.json   documented reference thresholds (with sources)
-  scripts/generate_data.py     simulated demo data
+  app/config/devices.json      device kinds, indicators each may send, what they are modeled on
+  scripts/generate_data.py     simulated demo data (+ simulated devices)
+  scripts/device_simulator.py  simulated device sending live heart rate readings
   tests/                       pytest suite (analysis rules + API)
 frontend/                      Vue 3 + TypeScript + Vite + Plotly
   src/App.vue                  page layout and headline logic
@@ -100,11 +109,43 @@ App: http://localhost:5173
 | Method | Route | Description |
 |---|---|---|
 | GET | `/astronauts` | list crew members |
-| GET | `/astronauts/{id}/status` | per indicator: `value`, `baseline`, `level`, `trend`, `reasons[]`, plus `overall_level` |
-| GET | `/astronauts/{id}/measurements?indicator=&start=&end=` | history |
+| GET | `/astronauts/{id}/status` | per indicator: `value`, `baseline`, `level`, `trend`, `reasons[]`, `last_source` (`{type, device_name}`), plus `overall_level` |
+| GET | `/astronauts/{id}/measurements?indicator=&start=&end=` | history; each row has `source` (`simulated` / `manual` / `device`), `device_id`, `device_name` |
+| GET | `/astronauts/{id}/devices` | paired devices: `kind`, `name`, `simulated`, `last_seen`, `status` (`online` if seen in the last 2 min), `indicators`. Never returns the token |
+| POST | `/devices/{device_id}/readings` | header `X-Device-Token`; body `{readings: [{indicator, value, timestamp?}]}` (1–100). 401 bad token, 422 if a reading is not supported by the device kind or fails the [input validation](#input-validation) (whole batch rejected). Stored with `source: "device"` |
 | GET | `/astronauts/{id}/checks` | today's checks: per indicator `done` (measured in the last 24 h), `last_timestamp`, `hours_since_last`, plus `done_count` / `total` |
 | POST | `/astronauts/{id}/measurements` | body `{indicator, value, timestamp?}`, stored with `source: "manual"`; 422 if the value fails the [input validation](#input-validation) |
 | GET | `/indicators` | metadata, explanations, guidance, sources |
+
+## Devices (simulated)
+
+Astronauts don't only type values: on the ISS, the Canadian Space Agency's Bio-Monitor smart shirt records
+vital signs, and NASA planned actigraphy wrist monitors for the Artemis II crew. We cannot connect real
+hardware, so Houston Pulse implements the real architecture (paired devices, per-device token, readings
+endpoint, validation) and demos it with **simulated** devices. **None of them is a real integration**, and
+every device name says "(simulated)".
+
+| Kind | May send | Modeled on |
+|---|---|---|
+| `smart_shirt` | heart rate, systolic blood pressure | CSA Bio-Monitor smart shirt used on the ISS ([CSA](https://www.asc-csa.gc.ca/eng/sciences/bio-monitor.asp)). Its skin temperature is **not** mapped to body temperature: skin temperature is not core body temperature. |
+| `actigraphy_band` | sleep | Actigraphy wrist monitors planned for the Artemis II crew, ARCHeR study ([NASA](https://www.nasa.gov/humans-in-space/artemis-ii-crew-to-advance-human-spaceflight-research/)) |
+| `bp_cuff` | systolic + diastolic blood pressure | generic automatic blood pressure cuff |
+| `thermometer` | body temperature | generic body thermometer |
+| `glucometer` | blood glucose | generic blood glucose meter |
+
+The kinds live in `backend/app/config/devices.json`. Demo devices: Rivera → Bio-Monitor shirt + Sleep band,
+Tanaka → Sleep band + BP cuff, Moreau → Bio-Monitor shirt + Thermometer (all simulated).
+
+**Run the device simulator** (stdlib only) while the API is running:
+```bash
+cd backend
+python -m scripts.generate_data          # prints each device id + token
+python -m scripts.device_simulator --device-id 1 --token <token of Rivera's shirt>
+python -m scripts.device_simulator --device-id 1 --token <token> --spike   # ramps up to ~110 bpm in ~30 s
+```
+It sends one heart rate reading every 5 s (`--interval`), with small noise around the latest value, to
+`--api` (default `http://localhost:8000`; on Windows, `http://127.0.0.1:8000` avoids a slow IPv6 fallback).
+`--spike` crosses the documented AHA threshold (100 bpm) to show a live critical alert. Ctrl+C stops it.
 
 ## Input validation
 

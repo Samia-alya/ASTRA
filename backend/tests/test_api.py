@@ -5,7 +5,11 @@ Run from backend/:  python -m pytest -q
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from fastapi.testclient import TestClient
+from sqlmodel import create_engine
 
+import app.database as database
+from app.main import app
 from app.validation import validate_value
 
 # The `client` fixture (temporary database + simulated data) lives in conftest.py.

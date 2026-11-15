@@ -4,8 +4,9 @@ import { api } from './api'
 import HistoryChart from './components/HistoryChart.vue'
 import IndicatorGrid from './components/IndicatorGrid.vue'
 import MeasurementForm from './components/MeasurementForm.vue'
+import TodayChecks from './components/TodayChecks.vue'
 import VitalRing from './components/VitalRing.vue'
-import type { Astronaut, IndicatorMeta, IndicatorStatus, Measurement, StatusResponse } from './types'
+import type { Astronaut, ChecksResponse, IndicatorMeta, IndicatorStatus, Measurement, StatusResponse } from './types'
 import { fmt, LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, plainName } from './types'
 
 const astronauts = ref<Astronaut[]>([])
@@ -15,6 +16,18 @@ const meta = ref<Record<string, IndicatorMeta>>({})
 const selected = ref<string | null>(null)
 const history = ref<Measurement[]>([])
 const error = ref('')
+const checks = ref<ChecksResponse | null>(null)
+const form = ref<InstanceType<typeof MeasurementForm> | null>(null)
+
+const dueChecks = computed(() => checks.value?.items.filter((c) => !c.done) ?? [])
+const dueText = computed(() => {
+  const n = dueChecks.value.length
+  return `${n} measurement${n === 1 ? '' : 's'} due today: ${dueChecks.value.map((c) => c.label).join(', ')}`
+})
+
+function logNow(indicator: string) {
+  form.value?.logNow(indicator)
+}
 
 // Environment -> display name and one-way signal delay to Earth.
 const ENVIRONMENTS: Record<string, { name: string; delay: string }> = {
@@ -82,7 +95,10 @@ async function loadStatus() {
   if (astronautId.value === null) return
   try {
     error.value = ''
-    status.value = await api.status(astronautId.value)
+    const id = astronautId.value
+    const [s, c] = await Promise.all([api.status(id), api.checks(id)])
+    status.value = s
+    checks.value = c
     if (!selected.value) selected.value = flagged.value[0]?.indicator ?? status.value.indicators[0]?.indicator ?? null
     await loadHistory()
   } catch (e) {
@@ -131,6 +147,17 @@ watch(selected, loadHistory)
     </div>
   </header>
 
+  <div v-if="status && dueChecks.length" class="reminder" role="status">
+    <svg class="reminder-icon" viewBox="0 0 20 20" aria-hidden="true">
+      <circle cx="10" cy="10" r="8.25" fill="none" stroke="currentColor" stroke-width="2" />
+      <path d="M10 5.5 V10 L13 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </svg>
+    <span class="reminder-text">{{ dueText }}</span>
+    <button type="button" @click="logNow(dueChecks[0]!.indicator)">
+      Log now<span class="sr-only"> {{ dueChecks[0]!.label }}</span>
+    </button>
+  </div>
+
   <p v-if="error" class="error" role="alert">{{ error }}</p>
 
   <main v-if="status">
@@ -176,8 +203,14 @@ watch(selected, loadHistory)
       </div>
     </section>
 
-    <section class="card" v-if="astronautId !== null">
-      <MeasurementForm :astronaut-id="astronautId" :indicators="meta" :preset="selected" @saved="loadStatus" />
+    <section class="log-row" v-if="astronautId !== null">
+      <div class="card form-card">
+        <MeasurementForm ref="form" :astronaut-id="astronautId" :indicators="meta" :preset="selected"
+          @saved="loadStatus" />
+      </div>
+      <div class="card checks-card" v-if="checks">
+        <TodayChecks :checks="checks" @log="logNow" />
+      </div>
     </section>
 
     <p class="disclaimer">{{ status.disclaimer }}</p>
@@ -225,6 +258,22 @@ h1 { margin: -14px 0 0; font-family: var(--display); font-size: clamp(28px, 3.2v
   background: var(--text); color: var(--bg); font-weight: 600; font-size: 15px;
 }
 .guide .primary { margin-top: 16px; }
+
+.reminder {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 16px;
+  padding: 8px 8px 8px 16px; border-radius: 14px; border: 1.5px solid var(--watch);
+  background: #2a2113; color: var(--text); font-size: 14px;
+}
+.reminder-icon { width: 18px; height: 18px; flex: none; color: var(--watch); }
+.reminder-text { flex: 1 1 220px; }
+.reminder button {
+  min-height: 44px; padding: 0 16px; border-radius: 10px; border: none; cursor: pointer;
+  background: var(--watch); color: #1a1203; font-weight: 600; font-size: 14px;
+}
+
+.log-row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.form-card { flex: 2 1 440px; min-width: 0; }
+.checks-card { flex: 1 1 320px; min-width: 0; }
 
 .disclaimer { margin: 0; font-size: 12px; color: #8c8980; }
 .error { color: var(--critical); }

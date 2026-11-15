@@ -1,0 +1,24 @@
+{
+  "_README": "Expected NORMAL change of an indicator in microgravity, relative to the astronaut's pre-flight baseline. 'shift' and its source come from published in-flight measurements. 'ramp_days' linearly brings the shift from 0 at launch to its full value; where the source does not give the time course, the ramp is a TEAM ASSUMPTION and says so. Measured on the ISS: applying it to partial gravity (Moon, Mars surface) is an extrapolation.",
+  "temperature": {
+    "shift": 1.0,
+    "ramp_days": 75,
+    "ramp_basis": "Source: the rise of about 1 °C 'developed gradually over 2.5 months'. Linear shape is a team assumption.",
+    "summary": "Resting core temperature rises by about 1 °C over the first 2.5 months of flight.",
+    "source": "Stahn et al., 'Increased core body temperature in astronauts during long-duration space missions', Scientific Reports 7:16180 (2017). https://pmc.ncbi.nlm.nih.gov/articles/PMC5701078/"
+  },
+  "bp_systolic": {
+    "shift": -8.0,
+    "ramp_days": 85,
+    "ramp_basis": "TEAM ASSUMPTION: the source measured once between flight days 85 and 192; a linear onset up to day 85 is assumed.",
+    "summary": "24-h ambulatory systolic pressure is about 8 mmHg lower in flight than before launch.",
+    "source": "Norsk et al., 'Fluid shifts, vasodilatation and ambulatory blood pressure reduction during long duration spaceflight', J Physiol 593:573-584 (2015). https://pmc.ncbi.nlm.nih.gov/articles/PMC4324706/"
+  },
+  "bp_diastolic": {
+    "shift": -9.0,
+    "ramp_days": 85,
+    "ramp_basis": "TEAM ASSUMPTION: the source measured once between flight days 85 and 192; a linear onset up to day 85 is assumed.",
+    "summary": "24-h ambulatory diastolic pressure is about 9 mmHg lower in flight than before launch.",
+    "source": "Norsk et al., 'Fluid shifts, vasodilatation and ambulatory blood pressure reduction during long duration spaceflight', J Physiol 593:573-584 (2015). https://pmc.ncbi.nlm.nih.gov/articles/PMC4324706/"
+  }
+}

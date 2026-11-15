@@ -1,4 +1,4 @@
-import type { Astronaut, IndicatorMeta, Measurement, StatusResponse } from './types'
+import type { Astronaut, IndicatorMeta, Measurement, StatusResponse, TrendResponse } from './types'
 
 const BASE = '/api'
 
@@ -20,6 +20,9 @@ export const api = {
   indicators: () => request<Record<string, IndicatorMeta>>('/indicators'),
   measurements: (id: number, indicator: string) =>
     request<Measurement[]>(`/astronauts/${id}/measurements?indicator=${encodeURIComponent(indicator)}`),
+  trend: (id: number, indicator: string) =>
+    request<TrendResponse>(`/astronauts/${id}/trend?indicator=${encodeURIComponent(indicator)}`),
+  report: (id: number) => request<Record<string, unknown>>(`/astronauts/${id}/report`),
   addMeasurement: (id: number, indicator: string, value: number) =>
     request<Measurement>(`/astronauts/${id}/measurements`, {
       method: 'POST',

@@ -3,11 +3,9 @@
     "label": "Heart rate",
     "unit": "bpm",
     "body_zone": "heart",
-    "what": "Number of heartbeats per minute.",
+    "what": "Number of heartbeats per minute, measured at rest.",
     "why_in_space": "NASA HRP identifies cardiovascular adaptations as a risk: microgravity changes blood circulation and the function of the heart and blood vessels.",
-    "sources": [
-      "https://www.nasa.gov/hrp/hazards/"
-    ],
+    "sources": ["https://www.nasa.gov/hrp/hazards/"],
     "watch_direction": "both"
   },
   "bp_systolic": {
@@ -15,8 +13,8 @@
     "unit": "mmHg",
     "body_zone": "heart",
     "what": "Pressure in the arteries when the heart contracts.",
-    "why_in_space": "Related to the risk of cardiovascular adaptations identified by NASA HRP.",
-    "sources": [],
+    "why_in_space": "On the ISS, 24-h ambulatory blood pressure was measured 8-10 mmHg lower than before flight (Norsk et al., 2015). A lower reading in flight is therefore expected, not a warning sign by itself.",
+    "sources": ["https://pmc.ncbi.nlm.nih.gov/articles/PMC4324706/"],
     "watch_direction": "both"
   },
   "bp_diastolic": {
@@ -24,8 +22,8 @@
     "unit": "mmHg",
     "body_zone": "heart",
     "what": "Pressure in the arteries between heartbeats.",
-    "why_in_space": "Related to the risk of cardiovascular adaptations identified by NASA HRP.",
-    "sources": [],
+    "why_in_space": "On the ISS, 24-h ambulatory diastolic pressure was measured about 9 mmHg lower than before flight (Norsk et al., 2015).",
+    "sources": ["https://pmc.ncbi.nlm.nih.gov/articles/PMC4324706/"],
     "watch_direction": "both"
   },
   "glucose": {
@@ -34,16 +32,16 @@
     "body_zone": "abdomen",
     "what": "Amount of sugar in the blood.",
     "why_in_space": "NASA HRP identifies the risk of inadequate nutrition during long missions.",
-    "sources": [],
+    "sources": ["https://www.nasa.gov/hrp/hazards/"],
     "watch_direction": "both"
   },
   "temperature": {
-    "label": "Body temperature",
+    "label": "Core body temperature",
     "unit": "°C",
     "body_zone": "head",
-    "what": "Internal body temperature.",
-    "why_in_space": "NASA HRP identifies a risk of altered immune responses (e.g., reactivation of dormant viruses).",
-    "sources": [],
+    "what": "Internal body temperature, measured at rest.",
+    "why_in_space": "Resting core temperature rises by about 1 °C over the first 2.5 months on the ISS (Stahn et al., 2017). An Earth-calibrated tool reads that normal adaptation as a fever; this tool follows the expected in-flight curve instead.",
+    "sources": ["https://pmc.ncbi.nlm.nih.gov/articles/PMC5701078/"],
     "watch_direction": "both"
   },
   "sleep_hours": {
@@ -51,8 +49,8 @@
     "unit": "h",
     "body_zone": "brain",
     "what": "Amount of sleep in the last 24 hours.",
-    "why_in_space": "NASA HRP identifies the risk of inadequate sleep and irregular schedules.",
-    "sources": [],
+    "why_in_space": "Astronauts averaged about 6 hours of sleep per night on ISS missions although 8.5 hours were scheduled (Barger et al., 2014).",
+    "sources": ["https://www.eurekalert.org/news-releases/595450"],
     "watch_direction": "down"
   },
   "mood": {
@@ -61,7 +59,34 @@
     "body_zone": "brain",
     "what": "A self-assessment from 1 (very poor) to 5 (very good). This is not a clinical scale.",
     "why_in_space": "NASA HRP identifies the risk of behavioral changes related to isolation and confinement.",
-    "sources": [],
+    "sources": ["https://www.nasa.gov/hrp/hazards/"],
     "watch_direction": "down"
+  },
+  "alertness": {
+    "label": "Alertness (self-reported)",
+    "unit": "/10",
+    "body_zone": "brain",
+    "what": "How alert you feel, from 0 (exhausted) to 10 (fully alert). This is not a clinical scale.",
+    "why_in_space": "People under chronic sleep restriction are largely unaware of their growing performance deficits (Van Dongen et al., 2003). This self-rating is compared with the objective reaction-time test.",
+    "sources": ["https://ntrs.nasa.gov/citations/20040087752"],
+    "watch_direction": "down"
+  },
+  "pvt_lapses": {
+    "label": "Vigilance test: lapses",
+    "unit": "lapses",
+    "body_zone": "brain",
+    "what": "Number of slow responses (355 ms or more) in the 3-minute reaction-time test (PVT-B).",
+    "why_in_space": "The PVT-B was developed for spaceflight to detect fatigue-related losses of alertness objectively (Basner, Mollicone & Dinges, 2011).",
+    "sources": ["https://pmc.ncbi.nlm.nih.gov/articles/PMC3197786"],
+    "watch_direction": "up"
+  },
+  "pvt_mean_rt": {
+    "label": "Vigilance test: mean reaction time",
+    "unit": "ms",
+    "body_zone": "brain",
+    "what": "Average reaction time in the 3-minute reaction-time test (PVT-B).",
+    "why_in_space": "Slower responses are an objective sign of reduced alertness after sleep loss (Basner, Mollicone & Dinges, 2011).",
+    "sources": ["https://pmc.ncbi.nlm.nih.gov/articles/PMC3197786"],
+    "watch_direction": "up"
   }
 }

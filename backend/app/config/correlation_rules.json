@@ -1,0 +1,74 @@
+{
+  "_README": "Cross-indicator rules. Each rule combines several weak signals into one explained alert. The COMBINATIONS are team hypotheses built on the cited findings; they have not been clinically validated. A rule never raises 'critical'. Actions are operational suggestions for the crew, never prescriptions.",
+  "masked_fatigue": {
+    "title": "Masked fatigue: you feel alert, the reaction test disagrees",
+    "blocks_critical_ops": true,
+    "params": {
+      "sleep_nights": 3,
+      "sleep_mean_below_h": 6.0,
+      "alertness_at_least": 6
+    },
+    "explanation": "Sleep has been short for several nights and the reaction-time test is worse than your own baseline, yet you rate yourself as alert. Under chronic sleep restriction people are largely unaware of their growing performance deficits.",
+    "actions": [
+      "Postpone critical operations (EVA, docking, piloting) or hand them to a rested crewmate.",
+      "Protect a full sleep opportunity tonight (8.5 h is the scheduled sleep period on NASA missions).",
+      "Repeat the reaction-time test after sleep to confirm recovery.",
+      "Tell the Crew Medical Officer."
+    ],
+    "sources": [
+      "Van Dongen et al., Sleep 26(2):117-126 (2003): subjects were largely unaware of increasing cognitive deficits. https://ntrs.nasa.gov/citations/20040087752",
+      "Basner, Mollicone & Dinges, Acta Astronautica 69:949-959 (2011): PVT-B, lapse threshold 355 ms. https://pmc.ncbi.nlm.nih.gov/articles/PMC3197786",
+      "Barger et al., Lancet Neurology (2014): about 6 h of sleep per night in flight for 8.5 h scheduled. https://www.eurekalert.org/news-releases/595450"
+    ],
+    "indicators": [
+      "sleep_hours",
+      "alertness",
+      "pvt_lapses",
+      "pvt_mean_rt"
+    ]
+  },
+  "fever_beyond_adaptation": {
+    "title": "Temperature above your space-adapted baseline, with a faster heart rate",
+    "blocks_critical_ops": false,
+    "params": {
+      "heart_rate_rise_pct": 10
+    },
+    "explanation": "Your resting temperature is above what the normal in-flight rise explains, and your resting heart rate is up as well. Together these can be an early sign of infection or heat strain rather than adaptation.",
+    "actions": [
+      "Measure temperature and heart rate again after 30 minutes of rest.",
+      "Check for other signs: skin lesions, sore throat, urinary symptoms, cough.",
+      "Keep exercise light until temperature is back in your expected band.",
+      "Tell the Crew Medical Officer and include it in the next report to Mission Control."
+    ],
+    "sources": [
+      "Stahn et al., Scientific Reports 7:16180 (2017): resting core temperature about 1 °C higher in flight. https://pmc.ncbi.nlm.nih.gov/articles/PMC5701078/"
+    ],
+    "indicators": [
+      "temperature",
+      "heart_rate"
+    ]
+  },
+  "sustained_stress_load": {
+    "title": "Sustained stress load: short sleep, lower mood, faster heart rate",
+    "blocks_critical_ops": false,
+    "params": {
+      "sleep_nights": 3,
+      "sleep_mean_below_h": 6.0,
+      "heart_rate_rise_pct": 10
+    },
+    "explanation": "Several days of short sleep, a mood below your usual level and a raised resting heart rate point to a sustained stress load. Spaceflight stress is associated with weaker immune surveillance and reactivation of latent herpes viruses.",
+    "actions": [
+      "Protect sleep and reduce workload where the schedule allows.",
+      "Watch for skin rashes or cold sores and report them.",
+      "Tell the Crew Medical Officer."
+    ],
+    "sources": [
+      "Rooney, Crucian, Pierson, Laudenslager & Mehta, Frontiers in Microbiology (2019): herpes viruses reactivated in more than half of Shuttle and ISS crew. https://www.sciencedaily.com/releases/2019/03/190316162211.htm"
+    ],
+    "indicators": [
+      "sleep_hours",
+      "mood",
+      "heart_rate"
+    ]
+  }
+}

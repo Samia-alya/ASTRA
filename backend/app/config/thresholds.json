@@ -1,10 +1,38 @@
 {
-  "_README": "Medical reference thresholds. These are the ONLY thresholds that can trigger 'critical'. Fill in a value ONLY with a verified source (organization + URL). null = no threshold.",
-  "heart_rate":   { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "bp_systolic":  { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "bp_diastolic": { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "glucose":      { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "temperature":  { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "sleep_hours":  { "critical_low": null, "critical_high": null, "source": "TODO" },
-  "mood":         { "critical_low": null, "critical_high": null, "source": "TODO" }
+  "_README": "Reference thresholds. 'critical_*' are the ONLY values that can trigger 'critical'; they are absolute limits and are never adjusted for spaceflight. 'reference_*' are Earth clinical reference values that trigger 'attention'; for indicators listed in space_adaptation.json they are shifted by the expected in-flight adaptation. Fill in a value ONLY with a verified source (organization + URL). null = no threshold. These are Earth clinical references: no universally accepted in-flight thresholds exist.",
+  "heart_rate": {
+    "critical_low": null, "critical_high": null,
+    "reference_low": null, "reference_high": 100,
+    "source": "American Heart Association: tachycardia is a resting heart rate over 100 beats per minute. https://www.heart.org/svt"
+  },
+  "bp_systolic": {
+    "critical_low": null, "critical_high": 180,
+    "reference_low": null, "reference_high": 140,
+    "source": "American Heart Association: hypertension stage 2 is 140/90 mm Hg or higher; hypertensive crisis is higher than 180 and/or higher than 120. https://heart.org/bplevels"
+  },
+  "bp_diastolic": {
+    "critical_low": null, "critical_high": 120,
+    "reference_low": null, "reference_high": 90,
+    "source": "American Heart Association: hypertension stage 2 is 140/90 mm Hg or higher; hypertensive crisis is higher than 180 and/or higher than 120. https://heart.org/bplevels"
+  },
+  "glucose": {
+    "critical_low": 54, "critical_high": null,
+    "reference_low": 70, "reference_high": null,
+    "source": "American Diabetes Association classification of hypoglycemia: level 1 is below 70 mg/dL, level 2 is below 54 mg/dL (Agiostratidou et al., Diabetes Care 2017;40:1622-1630). https://ada.silverchair.com/view-large/3051584"
+  },
+  "temperature": {
+    "critical_low": null, "critical_high": 40.0,
+    "reference_low": null, "reference_high": 38.0,
+    "source": "Fever: measured temperature of 38 °C (100.4 °F) or higher (U.S. National Library of Medicine, MedlinePlus). https://medlineplus.gov/ency/article/003090.htm",
+    "critical_source": "Core temperature above 40 °C can have life-threatening consequences (Stahn et al., Scientific Reports 7:16180, 2017). https://pmc.ncbi.nlm.nih.gov/articles/PMC5701078/"
+  },
+  "sleep_hours": {
+    "critical_low": null, "critical_high": null,
+    "reference_low": 6.0, "reference_high": null,
+    "source": "American Academy of Sleep Medicine and Sleep Research Society: adults should sleep 7 or more hours per night; six or fewer hours is inadequate to sustain health and safety. https://aasm.org/seven-or-more-hours-of-sleep-per-night-a-health-necessity-for-adults/"
+  },
+  "mood":        { "critical_low": null, "critical_high": null, "reference_low": null, "reference_high": null, "source": "No documented threshold: self-reported, non-clinical scale." },
+  "alertness":   { "critical_low": null, "critical_high": null, "reference_low": null, "reference_high": null, "source": "No documented threshold: self-reported, non-clinical scale." },
+  "pvt_lapses":  { "critical_low": null, "critical_high": null, "reference_low": null, "reference_high": null, "source": "No validated cut-off for the number of lapses; compared with the astronaut's own baseline only." },
+  "pvt_mean_rt": { "critical_low": null, "critical_high": null, "reference_low": null, "reference_high": null, "source": "No validated cut-off; compared with the astronaut's own baseline only." }
 }

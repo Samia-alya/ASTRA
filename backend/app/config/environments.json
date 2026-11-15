@@ -1,0 +1,27 @@
+{
+  "_README": "Mission environments. Communication delay decides how much the crew must act on its own. Only sourced values are given.",
+  "station": {
+    "label": "Space station (low Earth orbit)",
+    "comm_delay": "Near real-time contact with Mission Control.",
+    "one_way_delay_min": null,
+    "autonomy": "ground_supported",
+    "adaptation_model_applies": true,
+    "source": null
+  },
+  "mars_transit": {
+    "label": "Mars transit vehicle",
+    "comm_delay": "4 to 24 minutes one way: a question to Earth gets its answer 8 to 48 minutes later.",
+    "one_way_delay_min": [4, 24],
+    "autonomy": "earth_independent",
+    "adaptation_model_applies": true,
+    "source": "NASA, 'Space Communications: 7 Things You Need to Know'. https://www.nasa.gov/missions/tech-demonstration/space-communications-7-things-you-need-to-know"
+  },
+  "lunar_base": {
+    "label": "Lunar surface base",
+    "comm_delay": "Short delay; conversation with Mission Control is practical.",
+    "one_way_delay_min": null,
+    "autonomy": "ground_supported",
+    "adaptation_model_applies": false,
+    "source": null
+  }
+}

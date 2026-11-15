@@ -32,7 +32,6 @@ async function submit() {
 
 <template>
   <form class="form" @submit.prevent="submit">
-    <h3>New measurement</h3>
     <select v-model="indicator">
       <option v-for="(meta, key) in indicators" :key="key" :value="key">{{ meta.label }} ({{ meta.unit }})</option>
     </select>

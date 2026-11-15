@@ -1,44 +1,99 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from './api'
-import HistoryChart from './components/HistoryChart.vue'
-import IndicatorCard from './components/IndicatorCard.vue'
+import AlertsPanel from './components/AlertsPanel.vue'
+import HolographicBody3D, { type BodyZone } from './components/HolographicBody3D.vue'
 import MeasurementForm from './components/MeasurementForm.vue'
-import type { Astronaut, IndicatorMeta, Measurement, StatusResponse } from './types'
+import MetricPanel from './components/MetricPanel.vue'
+import ModalDialog from './components/ModalDialog.vue'
+import PvtTest from './components/PvtTest.vue'
+import type { Astronaut, IndicatorMeta, IndicatorStatus, Level, StatusResponse, TrendResponse } from './types'
+
+// Body zones shown on the hologram and the indicators each one carries.
+const ZONES: { key: string; label: string; indicators: string[] }[] = [
+  { key: 'brain', label: 'Brain · Sleep', indicators: ['sleep_hours', 'alertness', 'mood', 'pvt_lapses', 'pvt_mean_rt'] },
+  { key: 'heart', label: 'Heart · Blood pressure', indicators: ['heart_rate', 'bp_systolic', 'bp_diastolic'] },
+  { key: 'torso', label: 'Core · Temperature', indicators: ['temperature'] },
+  { key: 'forearm', label: 'Forearm · Glucose', indicators: ['glucose'] },
+]
+const RANK: Record<Level, number> = { critical: 0, attention: 1, normal: 2, no_data: 3 }
+const ENV_SHORT: Record<string, string> = { mars_transit: 'Mars Transit', station: 'Space Station', lunar_base: 'Lunar Base' }
+const READY = { GO: { text: 'GO', shape: '●' }, CAUTION: { text: 'CAUTION', shape: '▲' }, NO_GO: { text: 'NO-GO', shape: '■' } }
 
 const astronauts = ref<Astronaut[]>([])
 const astronautId = ref<number | null>(null)
 const status = ref<StatusResponse | null>(null)
 const meta = ref<Record<string, IndicatorMeta>>({})
-const selected = ref<string | null>(null)
-const history = ref<Measurement[]>([])
+const zone = ref<string | null>(null)
+const indicator = ref<string | null>(null)
+const trend = ref<TrendResponse | null>(null)
 const error = ref('')
+const open = ref<'alerts' | 'pvt' | 'log' | null>(null)
 
-const OVERALL = {
-  normal: 'All good',
-  attention: 'Some indicators need your attention',
-  critical: 'Contact your flight surgeon',
-  no_data: 'No data yet',
+const byKey = computed(() => {
+  const map: Record<string, IndicatorStatus> = {}
+  for (const s of status.value?.indicators ?? []) map[s.indicator] = s
+  return map
+})
+function zoneMetrics(key: string): IndicatorStatus[] {
+  const z = ZONES.find((x) => x.key === key)
+  return (z?.indicators ?? []).map((k) => byKey.value[k]).filter((s): s is IndicatorStatus => !!s)
 }
+const bodyZones = computed<BodyZone[]>(() => ZONES.map((z) => {
+  const list = zoneMetrics(z.key)
+  const worst = [...list].sort((a, b) => RANK[a.level] - RANK[b.level])[0]
+  return {
+    key: z.key, label: z.label, level: worst?.level ?? 'no_data',
+    summary: worst && worst.value !== null ? `${worst.value} ${worst.unit}` : 'no data',
+  }
+}))
+const metrics = computed(() => (zone.value ? zoneMetrics(zone.value) : []))
+const zoneLabel = computed(() => ZONES.find((z) => z.key === zone.value)?.label ?? '')
+const falseAlarms = computed(() => status.value?.indicators.reduce((n, i) => n + i.earth_false_alarms, 0) ?? 0)
+const pill = computed(() => {
+  const m = status.value?.mission
+  if (!m) return ''
+  const delay = m.one_way_delay_min ? `${m.one_way_delay_min[0]}–${m.one_way_delay_min[1]} min delay` : 'Live link to Earth'
+  return `Day ${m.flight_day} • ${ENV_SHORT[m.environment] ?? m.environment_label} • ${delay}`
+})
 
-const selectedStatus = computed(() => status.value?.indicators.find((i) => i.indicator === selected.value) ?? null)
-const hasSimulated = computed(() => history.value.some((m) => m.source === 'simulated'))
+function selectZone(key: string) {
+  zone.value = key
+  const list = zoneMetrics(key)
+  const worst = [...list].sort((a, b) => RANK[a.level] - RANK[b.level])[0]
+  indicator.value = worst?.indicator ?? null
+}
 
 async function loadStatus() {
   if (astronautId.value === null) return
   try {
     status.value = await api.status(astronautId.value)
-    const first = status.value.indicators.find((i) => i.level !== 'normal') ?? status.value.indicators[0]
-    if (!selected.value && first) selected.value = first.indicator
-    await loadHistory()
+    if (!zone.value) {
+      // Start on the zone that most needs attention; if all is well, show temperature
+      // (the clearest example of a value that is normal in space but not on Earth).
+      const sorted = [...bodyZones.value].sort((a, b) => RANK[a.level] - RANK[b.level])
+      selectZone(sorted[0] && sorted[0].level !== 'normal' ? sorted[0].key : 'torso')
+    }
+    await loadTrend()
   } catch (e) {
     error.value = (e as Error).message
   }
 }
 
-async function loadHistory() {
-  if (astronautId.value === null || !selected.value) return
-  history.value = await api.measurements(astronautId.value, selected.value)
+async function loadTrend() {
+  if (astronautId.value === null || !indicator.value) return
+  trend.value = await api.trend(astronautId.value, indicator.value)
+}
+
+async function exportReport() {
+  if (astronautId.value === null) return
+  const report = await api.report(astronautId.value)
+  const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `astrovitals-report-FD${status.value?.mission.flight_day ?? ''}.json`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 onMounted(async () => {
@@ -46,75 +101,115 @@ onMounted(async () => {
     ;[astronauts.value, meta.value] = await Promise.all([api.astronauts(), api.indicators()])
     astronautId.value = astronauts.value[0]?.id ?? null
   } catch {
-    error.value = "Unable to reach the API. Is the backend running on port 8000?"
+    error.value = 'Unable to reach the API. Is the backend running?'
   }
 })
 
-watch(astronautId, () => { selected.value = null; loadStatus() })
-watch(selected, loadHistory)
+watch(astronautId, () => { zone.value = null; indicator.value = null; trend.value = null; loadStatus() })
+watch(indicator, loadTrend)
 </script>
 
 <template>
-  <header>
-    <h1>Houston Pulse</h1>
-    <select v-if="astronauts.length" v-model="astronautId">
-      <option v-for="a in astronauts" :key="a.id" :value="a.id">{{ a.name }} · {{ a.mission }}</option>
-    </select>
-  </header>
+  <div class="app">
+    <header class="bar">
+      <div class="brand"><span class="mark" aria-hidden="true">✚</span>AstroVitals</div>
+      <select v-if="astronauts.length" v-model="astronautId" class="who" aria-label="Crew member">
+        <option v-for="a in astronauts" :key="a.id" :value="a.id">{{ a.name }}</option>
+      </select>
+      <span v-if="status" class="pill">{{ pill }}</span>
+      <span class="grow"></span>
+      <template v-if="status">
+        <button type="button" class="btn alerts" :class="{ none: !status.alerts.length }" @click="open = 'alerts'">
+          <i aria-hidden="true">▲</i>
+          {{ status.alerts.length || 'No' }} Clinical Alert{{ status.alerts.length === 1 ? '' : 's' }}
+        </button>
+        <span class="ready" :class="status.readiness.status" :title="status.readiness.label">
+          <i aria-hidden="true">{{ READY[status.readiness.status].shape }}</i>{{ READY[status.readiness.status].text }}
+        </span>
+        <button type="button" class="btn" @click="open = 'pvt'">Vigilance Test (PVT)</button>
+        <button type="button" class="btn primary" @click="open = 'log'">+ Log Metric</button>
+      </template>
+    </header>
 
-  <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="error" class="error">{{ error }}</p>
 
-  <main v-if="status">
-    <section class="overall" :class="status.overall_level">
-      <strong>{{ OVERALL[status.overall_level] }}</strong>
-      <span>Day {{ status.astronaut.mission_day }} · {{ status.astronaut.environment }}</span>
-    </section>
+    <main v-if="status" class="main">
+      <section class="left">
+        <HolographicBody3D :zones="bodyZones" :selected="zone" @select="selectZone" />
+        <div class="notes">
+          <p v-if="falseAlarms > 0"><b>{{ falseAlarms }} false alarms avoided</b> vs an Earth-calibrated tool</p>
+          <p v-else-if="!status.mission.adaptation_model_applies">Weightlessness model not applied in this environment</p>
+          <p class="fine">Simulated data · Monitoring aid, not a medical diagnosis</p>
+        </div>
+      </section>
+      <section class="right">
+        <MetricPanel :zone-label="zoneLabel" :metrics="metrics" :selected="indicator" :trend="trend"
+          :alerts="status.alerts" :meta="meta" @select="indicator = $event" @open-alerts="open = 'alerts'" />
+      </section>
+    </main>
 
-    <section class="grid">
-      <IndicatorCard
-        v-for="s in status.indicators" :key="s.indicator" :status="s"
-        :selected="s.indicator === selected" @select="selected = s.indicator"
-      />
-    </section>
+    <ModalDialog v-if="open === 'alerts' && status" side :title="`${status.alerts.length} clinical alert${status.alerts.length === 1 ? '' : 's'}`" @close="open = null">
+      <p class="ready-line" :class="status.readiness.status">
+        <b>{{ status.readiness.label }}</b>
+        <span v-if="status.mission.autonomy === 'earth_independent'"> · {{ status.mission.comm_delay }}</span>
+      </p>
+      <AlertsPanel v-if="status.alerts.length" :alerts="status.alerts" />
+      <p v-else class="empty">No cross-indicator alert is active. {{ status.readiness.reasons.join(' ') }}</p>
+      <template #footer>
+        <button type="button" class="btn" @click="exportReport">Export report for Mission Control</button>
+        <span class="fine">{{ status.disclaimer }}</span>
+      </template>
+    </ModalDialog>
 
-    <section class="detail" v-if="selectedStatus">
-      <div class="panel">
-        <span v-if="hasSimulated" class="sim">SIMULATED DATA</span>
-        <HistoryChart :data="history" :label="selectedStatus.label" :unit="selectedStatus.unit"
-          :baseline="selectedStatus.baseline" />
-      </div>
-      <div class="panel guide" v-if="meta[selectedStatus.indicator]">
-        <h3>{{ selectedStatus.label }}</h3>
-        <p><b>What it measures:</b> {{ meta[selectedStatus.indicator]!.what }}</p>
-        <p><b>Why it matters in space:</b> {{ meta[selectedStatus.indicator]!.why_in_space }}</p>
-        <!-- TODO (Member 3): "What to do?" section by level, based on reliable sources -->
-      </div>
-    </section>
+    <ModalDialog v-if="open === 'pvt' && astronautId !== null" title="Vigilance test (PVT-B)" @close="open = null">
+      <PvtTest :astronaut-id="astronautId" @saved="loadStatus" />
+    </ModalDialog>
 
-    <section class="panel" v-if="astronautId !== null">
-      <MeasurementForm :astronaut-id="astronautId" :indicators="meta" @saved="loadStatus" />
-    </section>
-
-    <p class="disclaimer">{{ status.disclaimer }}</p>
-  </main>
+    <ModalDialog v-if="open === 'log' && astronautId !== null" title="Log a metric" @close="open = null">
+      <MeasurementForm :astronaut-id="astronautId" :indicators="meta" @saved="loadStatus(); open = null" />
+    </ModalDialog>
+  </div>
 </template>
 
 <style scoped>
-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
-header select { font: inherit; padding: 8px; border-radius: 8px; background: var(--panel); color: inherit;
-  border: 1px solid var(--border); }
-main { display: flex; flex-direction: column; gap: 16px; }
-.overall { display: flex; justify-content: space-between; padding: 14px 18px; border-radius: 12px;
-  background: var(--panel); border-left: 6px solid var(--ok); }
-.overall.attention { border-left-color: var(--warn); }
-.overall.critical { border-left-color: var(--crit); }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
-.detail { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
-@media (max-width: 800px) { .detail { grid-template-columns: 1fr; } }
-.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; position: relative; }
-.guide p { font-size: 14px; line-height: 1.5; }
-.sim { position: absolute; top: 10px; right: 12px; z-index: 1; font-size: 11px; font-weight: 700;
-  letter-spacing: .05em; background: var(--warn); color: #2b1a00; padding: 2px 8px; border-radius: 6px; }
-.disclaimer { font-size: 12px; opacity: .7; }
-.error { color: var(--crit); }
+.app { width: 100vw; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.bar { flex: none; display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 18px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
+.mark { color: var(--cyan); }
+.who { font: inherit; font-size: 14px; padding: 6px 8px; border-radius: 8px; background: transparent; color: var(--text);
+  border: 1px solid transparent; cursor: pointer; max-width: 170px; }
+.who:hover, .who:focus { border-color: var(--line); }
+.who option { background: #0b1220; }
+.pill { font-size: 13px; padding: 6px 13px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.grow { flex: 1; }
+.btn { font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 9px; border: 1px solid var(--line); background: transparent;
+  color: var(--text); cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; }
+.btn:hover { border-color: var(--cyan); }
+.btn.primary { background: var(--cyan); border-color: var(--cyan); color: #041018; font-weight: 600; }
+.btn.alerts { border-color: var(--warn); color: var(--warn); }
+.btn.alerts.none { border-color: var(--line); color: var(--muted); }
+.btn i, .ready i { font-style: normal; font-size: 12px; }
+.ready { font-size: 14px; font-weight: 700; letter-spacing: .04em; padding: 7px 13px; border-radius: 9px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 7px; background: var(--ok); color: #04210f; }
+.ready.CAUTION { background: var(--warn); color: #2b1a00; }
+.ready.NO_GO { background: var(--crit); color: #fff; }
+
+.main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 40%) 1fr; }
+.left { position: relative; min-height: 0; min-width: 0; border-right: 1px solid var(--line); }
+.notes { position: absolute; left: 16px; top: 12px; right: 16px; pointer-events: none; }
+.notes p { margin: 0 0 2px; font-size: 13px; color: var(--cyan); }
+.notes .fine { color: var(--muted); font-size: 12px; }
+.right { min-height: 0; min-width: 0; padding: 12px 16px 14px; }
+
+.ready-line { margin: 0 0 12px; font-size: 14px; color: var(--ok); }
+.ready-line.CAUTION { color: var(--warn); } .ready-line.NO_GO { color: var(--crit); }
+.ready-line span { color: var(--muted); }
+.empty { color: var(--muted); }
+.fine { font-size: 12px; color: var(--muted); }
+.error { margin: 12px 18px; color: var(--crit); }
+
+@media (max-width: 1180px) {
+  .pill { display: none; }
+  .bar { gap: 8px; padding: 0 12px; }
+}
 </style>

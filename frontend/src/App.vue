@@ -7,6 +7,7 @@ import MeasurementForm from './components/MeasurementForm.vue'
 import VitalRing from './components/VitalRing.vue'
 import type { Astronaut, IndicatorMeta, IndicatorStatus, Measurement, StatusResponse } from './types'
 import { fmt, LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, plainName } from './types'
+import { periodStats } from './stats'
 
 const astronauts = ref<Astronaut[]>([])
 const astronautId = ref<number | null>(null)
@@ -15,6 +16,10 @@ const meta = ref<Record<string, IndicatorMeta>>({})
 const selected = ref<string | null>(null)
 const history = ref<Measurement[]>([])
 const error = ref('')
+
+// History period: lives here (not in the chart) so it survives indicator / astronaut switches.
+const PERIODS = [7, 14, 30] as const
+const periodDays = ref<number>(14)
 
 // Environment -> display name and one-way signal delay to Earth.
 const ENVIRONMENTS: Record<string, { name: string; delay: string }> = {
@@ -59,6 +64,25 @@ const headline = computed(() => {
 
 const sel = computed(() => status.value?.indicators.find((i) => i.indicator === selected.value) ?? null)
 const selMeta = computed(() => (selected.value ? meta.value[selected.value] : undefined))
+const stats = computed(() => periodStats(history.value, periodDays.value))
+
+function withUnit(v: number | null, unit: string) {
+  return v === null ? '—' : `${fmt(v, unit)} ${unit}`
+}
+const changeText = computed(() => {
+  const c = stats.value.change
+  const unit = sel.value?.unit ?? ''
+  if (c === null) return '—'
+  const abs = fmt(Math.abs(c), unit)
+  const sign = Number(abs) === 0 ? '' : c > 0 ? '+' : '−'
+  return `${sign}${abs} ${unit}`
+})
+const rangeText = computed(() => {
+  const { min, max } = stats.value.current
+  const unit = sel.value?.unit ?? ''
+  return min === null || max === null ? '—' : `${fmt(min, unit)}–${fmt(max, unit)} ${unit}`
+})
+
 const hasSimulated = computed(() => history.value.some((m) => m.source === 'simulated'))
 
 const deltaText = computed(() => {
@@ -160,8 +184,31 @@ watch(selected, loadHistory)
         <ul class="reasons">
           <li v-for="r in sel.reasons" :key="r">{{ r }}</li>
         </ul>
+        <div class="periods" role="group" aria-label="History period">
+          <button v-for="d in PERIODS" :key="d" type="button" :aria-pressed="periodDays === d"
+            @click="periodDays = d">{{ d }} days</button>
+        </div>
         <HistoryChart :data="history" :label="sel.label" :unit="sel.unit" :baseline="sel.baseline"
-          :color="LEVEL_COLOR[sel.level]" />
+          :color="LEVEL_COLOR[sel.level]" :days="periodDays" />
+        <dl class="stats">
+          <div>
+            <dt>Average (last {{ periodDays }} days)</dt>
+            <dd>{{ withUnit(stats.current.average, sel.unit) }}</dd>
+          </div>
+          <div>
+            <dt>Previous {{ periodDays }} days</dt>
+            <dd>{{ withUnit(stats.previous.average, sel.unit) }}
+              <small v-if="!stats.previous.count">not enough data</small></dd>
+          </div>
+          <div>
+            <dt>Change</dt>
+            <dd>{{ changeText }}</dd>
+          </div>
+          <div>
+            <dt>Range</dt>
+            <dd>{{ rangeText }}</dd>
+          </div>
+        </dl>
         <span v-if="hasSimulated" class="sim-note">Simulated data · dashed line = your personal baseline</span>
       </div>
 
@@ -214,6 +261,25 @@ h1 { margin: -14px 0 0; font-family: var(--display); font-size: clamp(28px, 3.2v
 .state { display: flex; align-items: center; gap: 12px; }
 .delta { font-size: 15px; color: var(--text-2); }
 .reasons { margin: 0; padding-left: 18px; font-size: 14px; color: var(--text-2); line-height: 1.5; }
+.periods {
+  display: inline-flex; align-self: flex-start; gap: 4px; padding: 4px;
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 14px;
+}
+.periods button {
+  min-height: 44px; padding: 0 16px; border: none; border-radius: 10px; cursor: pointer;
+  background: transparent; color: var(--text-2); font-size: 14px; font-weight: 600;
+}
+.periods button:hover { background: var(--panel-2); }
+.periods button[aria-pressed='true'] { background: var(--text); color: var(--bg); }
+
+.stats {
+  margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px 20px;
+}
+.stats div { display: flex; flex-direction: column; gap: 2px; }
+.stats dt { font-size: 12px; color: var(--muted); }
+.stats dd { margin: 0; font-size: 16px; font-weight: 600; }
+.stats small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+
 .sim-note { font-size: 12px; color: var(--muted); }
 
 .guide { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }

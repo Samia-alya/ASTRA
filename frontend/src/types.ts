@@ -33,8 +33,19 @@ export interface Device {
   name: string
   simulated: boolean
   last_seen: string | null
-  status: 'online' | 'offline'
+  /** live: < 2 min · synced: < 24 h · stale: ≥ 24 h · never: no reading yet */
+  status: 'live' | 'synced' | 'stale' | 'never'
   indicators: string[]
+  /** Latest reading this device sent for each indicator it supports. */
+  latest: DeviceReading[]
+}
+
+export interface DeviceReading {
+  indicator: string
+  label: string
+  unit: string
+  value: number
+  timestamp: string
 }
 
 export interface IndicatorStatus {

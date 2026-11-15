@@ -16,6 +16,7 @@ import numpy as np
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, delete, select
 
+from app.config import devices as device_kinds
 from app.config import indicators
 from app.database import engine, init_db
 from app.models import Astronaut, Device, Measurement
@@ -74,10 +75,17 @@ def seed(db_engine: Engine) -> list[tuple[int, str, str, str]]:
             s.add(astro)
             s.flush()
             # Devices use `secrets`, not `rng`, so the simulated values stay identical.
+            # Each indicator a device supports is attributed to it (first matching device wins);
+            # the others stay plain "simulated" rows. Every device here is itself simulated.
+            source_of: dict[str, Device] = {}
             for kind, name in a.get("devices", []):
                 dev = Device(astronaut_id=astro.id, kind=kind, name=name, token=secrets.token_urlsafe(24))
                 s.add(dev)
                 created.append((a["name"], dev))
+                for ind in device_kinds()[kind]["indicators"]:
+                    source_of.setdefault(ind, dev)
+            s.flush()  # device ids
+            last_reading: dict[int, datetime] = {}
             for d in range(DAYS):
                 ts = start + timedelta(days=d)
                 for ind, (centre, noise) in SIM.items():
@@ -93,8 +101,15 @@ def seed(db_engine: Engine) -> list[tuple[int, str, str, str]]:
                     if d == DAYS - 1 and ind in a.get("skip_last_day", ()):
                         continue
                     v = round(round(float(v) / steps[ind]) * steps[ind], 2)
-                    s.add(Measurement(astronaut_id=astro.id, indicator=ind, value=v,
-                                      timestamp=ts, source="simulated"))
+                    dev = source_of.get(ind)
+                    s.add(Measurement(astronaut_id=astro.id, indicator=ind, value=v, timestamp=ts,
+                                      source="device" if dev else "simulated",
+                                      device_id=dev.id if dev else None))
+                    if dev:
+                        last_reading[dev.id] = max(ts, last_reading.get(dev.id, ts))
+            # A device was last seen when it sent its latest generated reading.
+            for dev in source_of.values():
+                dev.last_seen = last_reading.get(dev.id)
         s.commit()
         # Read the values while the session is still open (the objects expire after it closes).
         return [(dev.id, astro_name, dev.name, dev.token) for astro_name, dev in created]

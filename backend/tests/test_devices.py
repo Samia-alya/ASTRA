@@ -1,9 +1,13 @@
 """Device integration tests. All devices are SIMULATED."""
+from datetime import datetime, timedelta, timezone
+
 from sqlmodel import Session, select
 
 import app.database as database
 from app.config import devices, indicators
+from app.live_devices import tick
 from app.models import Device
+from app.routers.astronauts import device_status
 
 
 def _device(astronaut_id: int, kind: str) -> Device:
@@ -28,7 +32,8 @@ def test_device_list_hides_tokens(client):
     assert [d["name"] for d in body] == ["Bio-Monitor shirt (simulated)", "Sleep band (simulated)"]
     for d in body:
         assert "token" not in d and d["simulated"] is True and "(simulated)" in d["name"]
-        assert d["status"] == "offline" and d["last_seen"] is None
+        # Generated history is attributed to the devices: last seen ~1 h ago -> "synced".
+        assert d["status"] == "synced" and d["last_seen"]
     assert body[0]["indicators"] == ["heart_rate", "bp_systolic"]
     assert client.get("/astronauts/999/devices").status_code == 404
 
@@ -72,7 +77,8 @@ def test_valid_readings_are_stored_as_device(client):
     assert latest["device_id"] == shirt.id and latest["device_name"] == "Bio-Monitor shirt (simulated)"
 
     listed = next(d for d in client.get("/astronauts/1/devices").json() if d["id"] == shirt.id)
-    assert listed["status"] == "online" and listed["last_seen"]
+    assert listed["status"] == "live" and listed["last_seen"]
+    assert {r["indicator"]: r["value"] for r in listed["latest"]} == {"heart_rate": 71, "bp_systolic": 121}
 
     hr = next(i for i in client.get("/astronauts/1/status").json()["indicators"] if i["indicator"] == "heart_rate")
     assert hr["value"] == 71
@@ -80,8 +86,50 @@ def test_valid_readings_are_stored_as_device(client):
 
 
 def test_last_source_for_simulated_and_manual(client):
-    status = client.get("/astronauts/2/status").json()
-    assert all(i["last_source"] == {"type": "simulated", "device_name": None} for i in status["indicators"])
+    # Tanaka: sleep from the sleep band, both blood pressures from the cuff, the rest plain simulated.
+    by_ind = {i["indicator"]: i["last_source"] for i in client.get("/astronauts/2/status").json()["indicators"]}
+    assert by_ind["sleep_hours"] == {"type": "device", "device_name": "Sleep band (simulated)"}
+    assert by_ind["bp_systolic"] == by_ind["bp_diastolic"] == {"type": "device", "device_name": "BP cuff (simulated)"}
+    assert by_ind["glucose"] == by_ind["mood"] == {"type": "simulated", "device_name": None}
     client.post("/astronauts/2/measurements", json={"indicator": "mood", "value": 4})
     mood = next(i for i in client.get("/astronauts/2/status").json()["indicators"] if i["indicator"] == "mood")
     assert mood["last_source"] == {"type": "manual", "device_name": None}
+
+
+def test_generator_attributes_history_to_devices(client):
+    hr = client.get("/astronauts/1/measurements?indicator=heart_rate").json()
+    assert len(hr) == 30 and all(m["source"] == "device" and m["device_name"] == "Bio-Monitor shirt (simulated)" for m in hr)
+    sleep = client.get("/astronauts/1/measurements?indicator=sleep_hours").json()
+    assert all(m["device_name"] == "Sleep band (simulated)" for m in sleep)
+    glucose = client.get("/astronauts/1/measurements?indicator=glucose").json()
+    assert all(m["source"] == "simulated" and m["device_id"] is None for m in glucose)
+    # Each device: latest value per supported indicator, and last_seen = its latest reading.
+    shirt = client.get("/astronauts/1/devices").json()[0]
+    assert [r["indicator"] for r in shirt["latest"]] == ["heart_rate", "bp_systolic"]
+    assert shirt["last_seen"] == max(r["timestamp"] for r in shirt["latest"])
+
+
+def test_device_status_thresholds():
+    now = datetime(2026, 11, 16, 12, tzinfo=timezone.utc)
+    assert device_status(None, now) == "never"
+    assert device_status(now - timedelta(seconds=30), now) == "live"
+    assert device_status(now - timedelta(hours=1), now) == "synced"
+    assert device_status(now - timedelta(hours=26), now) == "stale"
+
+
+def test_live_mode_tick_streams_shirt_heart_rate(client):
+    def heart_rates(astro):
+        return client.get(f"/astronauts/{astro}/measurements?indicator=heart_rate").json()
+
+    before = {astro: len(heart_rates(astro)) for astro in (1, 3)}  # Rivera and Moreau wear a shirt
+    tick({})
+    for astro in (1, 3):
+        shirt = _device(astro, "smart_shirt")
+        rows = heart_rates(astro)
+        assert len(rows) == before[astro] + 1
+        assert rows[-1]["source"] == "device" and rows[-1]["device_id"] == shirt.id
+        listed = next(d for d in client.get(f"/astronauts/{astro}/devices").json() if d["id"] == shirt.id)
+        assert listed["status"] == "live"
+    # Other device kinds do not stream.
+    band = next(d for d in client.get("/astronauts/1/devices").json() if d["kind"] == "actigraphy_band")
+    assert band["status"] == "synced"

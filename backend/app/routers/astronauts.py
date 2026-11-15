@@ -29,10 +29,19 @@ def _get_astronaut(astronaut_id: int, session: Session) -> Astronaut:
     return astro
 
 
-ONLINE_WINDOW = timedelta(minutes=2)
+LIVE_WINDOW = timedelta(minutes=2)   # streaming right now
+SYNC_WINDOW = timedelta(hours=24)    # e.g. a sleep band that syncs once a day
 
 
-def device_view(d: Device, now: datetime | None = None) -> dict:
+def device_status(last_seen: datetime | None, now: datetime) -> str:
+    """live (< 2 min) | synced (< 24 h) | stale (≥ 24 h) | never"""
+    if last_seen is None:
+        return "never"
+    age = now - last_seen
+    return "live" if age < LIVE_WINDOW else "synced" if age < SYNC_WINDOW else "stale"
+
+
+def device_view(d: Device, now: datetime | None = None, latest: list[dict] | None = None) -> dict:
     """Public view of a device: never includes the token."""
     now = now or datetime.now(timezone.utc)
     seen = _as_utc(d.last_seen) if d.last_seen else None
@@ -42,9 +51,27 @@ def device_view(d: Device, now: datetime | None = None) -> dict:
         "name": d.name,
         "simulated": d.simulated,
         "last_seen": seen.isoformat() if seen else None,
-        "status": "online" if seen and now - seen < ONLINE_WINDOW else "offline",
+        "status": device_status(seen, now),
         "indicators": devices().get(d.kind, {}).get("indicators", []),
+        "latest": latest or [],
     }
+
+
+def _latest_from_device(d: Device, session: Session) -> list[dict]:
+    """Latest reading this device sent for each indicator it supports."""
+    meta = indicators()
+    out = []
+    for key in devices().get(d.kind, {}).get("indicators", []):
+        m = session.exec(
+            select(Measurement)
+            .where(Measurement.device_id == d.id, Measurement.indicator == key)
+            .order_by(Measurement.timestamp.desc())
+            .limit(1)
+        ).first()
+        if m:
+            out.append({"indicator": key, "label": meta[key]["label"], "unit": meta[key]["unit"],
+                        "value": m.value, "timestamp": _as_utc(m.timestamp).isoformat()})
+    return out
 
 
 def _device_names(astronaut_id: int, session: Session) -> dict[int, str]:
@@ -63,7 +90,7 @@ def list_devices(astronaut_id: int, session: Session = Depends(get_session)):
     _get_astronaut(astronaut_id, session)
     rows = session.exec(select(Device).where(Device.astronaut_id == astronaut_id).order_by(Device.id)).all()
     now = datetime.now(timezone.utc)
-    return [device_view(d, now) for d in rows]
+    return [device_view(d, now, _latest_from_device(d, session)) for d in rows]
 
 
 @router.get("/{astronaut_id}/measurements", response_model=list[MeasurementRead])

@@ -8,11 +8,43 @@ from sqlmodel import Session
 
 from app.config import devices, indicators
 from app.database import get_session
-from app.models import Device, Measurement, ReadingsIn
+from app.models import Device, Measurement, ReadingIn, ReadingsIn
 from app.routers.astronauts import _as_utc
 from app.validation import validate_timestamp, validate_value
 
 router = APIRouter(prefix="/devices", tags=["devices"])
+
+
+def ingest_readings(session: Session, device: Device, readings: list[ReadingIn]) -> int:
+    """Validate and store readings for a device (all or nothing). Raises HTTPException(422).
+
+    Shared by the readings endpoint and the optional in-process live simulator, so both go
+    through exactly the same checks.
+    """
+    supported = devices().get(device.kind, {}).get("indicators", [])
+    meta = indicators()
+    now = datetime.now(timezone.utc)
+    rows = []
+    for i, r in enumerate(readings, start=1):
+        if r.indicator not in supported:
+            raise HTTPException(
+                422, f"Reading {i}: a {device.kind} device cannot send '{r.indicator}' "
+                f"(supported: {', '.join(supported)})."
+            )
+        ts = _as_utc(r.timestamp) if r.timestamp else None
+        # Plausibility limits for data entry only, not medical thresholds (see app/validation.py).
+        problem = validate_value(meta[r.indicator], r.value) or validate_timestamp(ts, now)
+        if problem:
+            raise HTTPException(422, f"Reading {i}: {problem}")
+        rows.append(Measurement(
+            astronaut_id=device.astronaut_id, indicator=r.indicator, value=r.value,
+            timestamp=ts or now, source="device", device_id=device.id,
+        ))
+    session.add_all(rows)
+    device.last_seen = now
+    session.add(device)
+    session.commit()
+    return len(rows)
 
 
 @router.post("/{device_id}/readings", status_code=201)
@@ -33,28 +65,5 @@ def post_readings(
     if not x_device_token or not secrets.compare_digest(x_device_token, device.token):
         raise HTTPException(401, "Missing or invalid X-Device-Token.")
 
-    supported = devices().get(device.kind, {}).get("indicators", [])
-    meta = indicators()
-    now = datetime.now(timezone.utc)
-    rows = []
-    for i, r in enumerate(payload.readings, start=1):
-        if r.indicator not in supported:
-            raise HTTPException(
-                422, f"Reading {i}: a {device.kind} device cannot send '{r.indicator}' "
-                f"(supported: {', '.join(supported)})."
-            )
-        ts = _as_utc(r.timestamp) if r.timestamp else None
-        # Plausibility limits for data entry only, not medical thresholds (see app/validation.py).
-        problem = validate_value(meta[r.indicator], r.value) or validate_timestamp(ts, now)
-        if problem:
-            raise HTTPException(422, f"Reading {i}: {problem}")
-        rows.append(Measurement(
-            astronaut_id=device.astronaut_id, indicator=r.indicator, value=r.value,
-            timestamp=ts or now, source="device", device_id=device.id,
-        ))
-
-    session.add_all(rows)
-    device.last_seen = now
-    session.add(device)
-    session.commit()
-    return {"stored": len(rows), "device_id": device.id, "last_seen": now.isoformat()}
+    stored = ingest_readings(session, device, payload.readings)
+    return {"stored": stored, "device_id": device.id, "last_seen": _as_utc(device.last_seen).isoformat()}

@@ -57,8 +57,11 @@ The backend generates it automatically on startup when the database is empty; ex
 | Cmdr. A. Rivera | Lunar base | Sleep and mood dropping, resting heart rate rising | Watch |
 | Eng. L. Moreau | Mars transit (3–22 min delay) | Temperature rising past 38 °C, blood pressure trending up | Critical |
 
-Each crew member also gets two **simulated** devices (see [Devices](#devices-simulated)). The generator prints
-each device's id and token at the end.
+Each crew member also gets two **simulated** devices (see [Devices](#devices-simulated)). The generated history
+of every indicator a device supports is attributed to that device (`source: "device"`, e.g. Rivera's heart rate
+and systolic blood pressure come from her simulated Bio-Monitor shirt); other indicators stay `source: "simulated"`.
+The values themselves are identical either way, so the demo story does not change. The generator prints each
+device's id and token at the end.
 
 > **Schema change (devices):** the SQLite schema now has a `device` table and a `measurement.device_id` column.
 > If you have an older `backend/houston_pulse.db`, delete it and rerun `python -m scripts.generate_data`
@@ -122,7 +125,7 @@ App: http://localhost:5173
 | GET | `/astronauts` | list crew members |
 | GET | `/astronauts/{id}/status` | per indicator: `value`, `baseline`, `level`, `trend`, `reasons[]`, `last_source` (`{type, device_name}`), plus `overall_level` |
 | GET | `/astronauts/{id}/measurements?indicator=&start=&end=` | history; each row has `source` (`simulated` / `manual` / `device`), `device_id`, `device_name` |
-| GET | `/astronauts/{id}/devices` | paired devices: `kind`, `name`, `simulated`, `last_seen`, `status` (`online` if seen in the last 2 min), `indicators`. Never returns the token |
+| GET | `/astronauts/{id}/devices` | paired devices: `kind`, `name`, `simulated`, `last_seen`, `status` (`live` < 2 min, `synced` < 24 h, `stale` ≥ 24 h, `never`), `indicators`, `latest` (latest reading this device sent per indicator: `indicator`, `label`, `unit`, `value`, `timestamp`). Never returns the token |
 | POST | `/devices/{device_id}/readings` | header `X-Device-Token`; body `{readings: [{indicator, value, timestamp?}]}` (1–100). 401 bad token, 422 if a reading is not supported by the device kind or fails the [input validation](#input-validation) (whole batch rejected). Stored with `source: "device"` |
 | GET | `/astronauts/{id}/checks` | today's checks: per indicator `done` (measured in the last 24 h), `last_timestamp`, `hours_since_last`, plus `done_count` / `total` |
 | POST | `/astronauts/{id}/measurements` | body `{indicator, value, timestamp?}`, stored with `source: "manual"`; 422 if the value fails the [input validation](#input-validation) |
@@ -157,6 +160,30 @@ python -m scripts.device_simulator --device-id 1 --token <token> --spike   # ram
 It sends one heart rate reading every 5 s (`--interval`), with small noise around the latest value, to
 `--api` (default `http://localhost:8000`; on Windows, `http://127.0.0.1:8000` avoids a slow IPv6 fallback).
 `--spike` crosses the documented AHA threshold (100 bpm) to show a live critical alert. Ctrl+C stops it.
+
+### Demo: live devices
+
+Device status in the UI: **Live** (reading in the last 2 min), **Synced · 1 h ago** (last 24 h),
+**Not synced for 26 h** (24 h or more), **Never synced**.
+
+To make the smart shirts stream without running a separate script, start the backend with
+`HP_SIMULATE_DEVICES=1`: every 5 s, each `smart_shirt` device sends a **simulated** heart rate (small noise
+around its latest value), through the same validation as `POST /devices/{id}/readings`. It is off by default
+and always off in tests.
+
+```powershell
+# Windows PowerShell, from backend/
+$env:HP_SIMULATE_DEVICES = "1"
+uvicorn app.main:app --reload --port 8000
+Remove-Item Env:HP_SIMULATE_DEVICES   # afterwards, to turn it off for this terminal
+```
+```bash
+# macOS / Linux
+HP_SIMULATE_DEVICES=1 uvicorn app.main:app --reload --port 8000
+```
+
+To show a critical alert live, use the external simulator with `--spike` on a shirt (see above). Run it with
+live mode **off**, otherwise the two sources send heart rates to the same shirt at the same time.
 
 ## Input validation
 

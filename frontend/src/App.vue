@@ -145,7 +145,11 @@ const rangeText = computed(() => {
   return min === null || max === null ? '—' : `${fmt(min, unit)}–${fmt(max, unit)} ${unit}`
 })
 
-const hasSimulated = computed(() => history.value.some((m) => m.source === 'simulated'))
+// Every device in this app is simulated, so device rows count as simulated data too.
+const hasSimulated = computed(() =>
+  history.value.some((m) => m.source === 'simulated'
+    || (m.source === 'device' && devices.value.find((d) => d.id === m.device_id)?.simulated !== false)),
+)
 
 const deltaText = computed(() => {
   const s = sel.value

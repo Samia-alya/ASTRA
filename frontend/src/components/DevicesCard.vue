@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ago } from '../time'
-import type { Device, IndicatorMeta } from '../types'
+import { ago, parseUtc } from '../time'
+import type { Device, DeviceReading, IndicatorMeta } from '../types'
+import { fmt } from '../types'
 
 const props = defineProps<{ devices: Device[]; meta: Record<string, IndicatorMeta>; now: number }>()
 
@@ -8,9 +9,28 @@ function measures(d: Device): string {
   return d.indicators.map((k) => props.meta[k]?.label ?? k).join(', ')
 }
 
-function syncText(d: Device): string {
-  if (d.status === 'online') return `last sync ${ago(d.last_seen, props.now)}`
-  return d.last_seen ? `last sync ${ago(d.last_seen, props.now)}` : 'never synced'
+/** "26 h", "3 d" */
+function since(iso: string): string {
+  const h = Math.floor((props.now - parseUtc(iso)) / 3_600_000)
+  return h < 48 ? `${h} h` : `${Math.floor(h / 24)} d`
+}
+
+/** Status words (always shown, never colour alone). */
+function statusText(d: Device): string {
+  if (d.status === 'live') return 'Live'
+  if (d.status === 'synced') return `Synced · ${ago(d.last_seen, props.now)}`
+  if (d.status === 'stale' && d.last_seen) return `Not synced for ${since(d.last_seen)}`
+  return 'Never synced'
+}
+
+/** "Heart rate", "Systolic" (labels with a qualifier use the short name), "Blood glucose"… */
+function readingName(r: DeviceReading): string {
+  return r.label.includes('(') ? (props.meta[r.indicator]?.short ?? r.label) : r.label
+}
+
+function latestTime(d: Device): string | null {
+  if (!d.latest.length) return null
+  return d.latest.map((r) => r.timestamp).sort().at(-1) ?? null
 }
 
 // Simple line icons per device kind (decorative; the name says what it is).
@@ -34,12 +54,20 @@ const ICONS: Record<string, string> = {
             stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         <div class="text">
-          <span class="name">{{ d.name }}</span>
-          <span class="what">{{ measures(d) }}</span>
-          <span class="sync" :class="d.status">
-            <span class="status-dot" :class="d.status" aria-hidden="true" />
-            <strong>{{ d.status === 'online' ? 'Online' : 'Offline' }}</strong> · {{ syncText(d) }}
-          </span>
+          <div class="top">
+            <span class="name">{{ d.name }}</span>
+            <span class="status" :class="d.status">
+              <span class="status-dot" aria-hidden="true" />{{ statusText(d) }}
+            </span>
+          </div>
+          <p v-if="d.latest.length" class="latest">
+            <template v-for="(r, i) in d.latest" :key="r.indicator">
+              <span v-if="i" aria-hidden="true"> · </span>
+              <span class="reading">{{ readingName(r) }} <strong>{{ fmt(r.value, r.unit) }}</strong> {{ r.unit }}</span>
+            </template>
+            <span class="when"> · {{ ago(latestTime(d), now) }}</span>
+          </p>
+          <span v-else class="what">Measures {{ measures(d).toLowerCase() }}</span>
         </div>
       </li>
     </ul>
@@ -57,18 +85,27 @@ li:last-child { border-bottom: none; }
   width: 36px; height: 36px; flex: none; padding: 6px; border-radius: 10px;
   background: var(--panel-2); color: var(--accent-2);
 }
-.text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; }
 .name { font-size: 15px; }
-.what { font-size: 13px; color: var(--text-2); }
-.sync { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
-.sync.online strong { color: var(--accent); }
-.sync strong { font-weight: 600; }
+
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--border-strong); }
-.status-dot.online { background: var(--accent); animation: pulse 2s ease-out infinite; }
+.status.live, .status.synced { color: var(--accent); }
+.status.live .status-dot, .status.synced .status-dot { background: var(--accent); }
+.status.live .status-dot { animation: pulse 2s ease-out infinite; }
+.status.stale { color: var(--watch); }
+.status.stale .status-dot { background: var(--watch); }
+.status.never { color: var(--muted); }
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.6); }
   100% { box-shadow: 0 0 0 8px rgba(45, 212, 191, 0); }
 }
+
+.latest { margin: 0; font-size: 13px; color: var(--text-2); line-height: 1.5; }
+.latest strong { color: var(--text); font-weight: 600; }
+.reading { white-space: nowrap; }
+.when, .what { font-size: 13px; color: var(--muted); }
 .empty { margin: 0; color: var(--muted); font-size: 14px; }
 .note { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
 </style>

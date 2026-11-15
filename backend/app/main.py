@@ -1,15 +1,20 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import init_db
+from app import database
 from app.routers import astronauts, indicators
+from scripts.generate_data import seed_if_empty
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    init_db()
+    database.init_db()
+    # Fresh checkout → simulated demo data. Existing data (incl. manual entries) is never touched.
+    if os.environ.get("HOUSTON_PULSE_NO_SEED") != "1":
+        seed_if_empty(database.engine)
     yield
 
 

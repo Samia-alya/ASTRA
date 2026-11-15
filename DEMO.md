@@ -16,7 +16,7 @@ Checked against the 2025 guide: https://www.spaceappschallenge.org/resources/pro
 
 | Time | Screen | Voice-over / subtitle |
 |---|---|---|
-| 0:00–0:04 | Title card | "We're team [TEAM NAME]. This is Houston Pulse." |
+| 0:00–0:04 | Title card | "We're team SpaceMed3. This is Houston Pulse." |
 | 0:04–0:09 | Rivera on the lunar base, vital ring | "Far from Earth, astronauts must spot health changes themselves. Houston Pulse compares every signal with *their own* baseline." |
 | 0:09–0:15 | Click the Sleep arc → chart + reasons | "Day 87: Rivera's sleep is slipping and resting heart rate is up. The app says why, and what to do now." |
 | 0:15–0:22 | Switch to Moreau, Mars transit, Critical | "On the way to Mars, a 38.4 °C fever crosses a documented CDC threshold: contact the flight surgeon — with a 22-minute signal delay." |
@@ -27,7 +27,9 @@ Tips: record the real app at 1440 px wide, slow mouse movements, add English sub
 
 ## 7-slide outline
 
-1. **Houston Pulse** — team name, members, challenge name, one-line pitch.
+1. **Houston Pulse** — one-line pitch, plus:
+   - Team: **SpaceMed3** — Samia Al Yahiaoui, Nourhane Anani, Teddy Emmanuel Kana Boumkwo II
+   - Challenge: *Create Health Monitoring Software for Astronauts on Space Missions*
 2. **The problem** — 5 hazards of spaceflight (NASA HRP); long missions = astronauts assess their own health, far from Earth.
 3. **Our solution** — screenshot of the vital ring; personal baseline, explained alerts, guidance.
 4. **How it works** — data → personal baseline + trend → documented thresholds → Nominal / Watch / Critical with reasons.
@@ -38,7 +40,7 @@ Tips: record the real app at 1440 px wide, slow mouse movements, add English sub
 ## Final checklist
 
 - [ ] `python -m pytest -q` passes in `backend/`
-- [ ] `python -m scripts.generate_data` run just before the demo (fresh dates)
+- [ ] `python -m scripts.generate_data` run just before the demo (fresh dates; wipes manual entries — the backend only auto-seeds an empty database)
 - [ ] App tested on the demo laptop (backend + frontend running)
 - [ ] Demo video or slides uploaded, link public, opened in a private window
 - [ ] GitHub repo public, README up to date

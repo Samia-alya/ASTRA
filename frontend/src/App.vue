@@ -495,7 +495,9 @@ watch(selected, loadHistory)
 
 main { display: flex; flex-direction: column; gap: 24px; margin-top: 24px; }
 
-.hero { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; }
+/* flex-start: the right column stays anchored when the body zone panel grows the ring column
+   (with `center` it re-centred and jumped down ~180 px). */
+.hero { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
 .ring-wrap { flex: 1 1 440px; min-width: 0; }
 .zone-hint { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; }
 .zone-hint p { margin: 0; font-size: 13px; color: var(--muted); }
@@ -508,6 +510,9 @@ main { display: flex; flex-direction: column; gap: 24px; margin-top: 24px; }
 .zone-chips button:hover { border-color: var(--border-strong); background: var(--panel-2); }
 .zone-chips button[aria-expanded='true'] { border-color: var(--accent-2); border-style: solid; background: var(--panel-2); color: var(--text); }
 .intro { flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+/* Side-by-side layout only (the columns stack below ~1090 px): a small top offset keeps the
+   headline where the old centred layout put it next to the ring (~50 px at 1440 px wide). */
+@media (min-width: 1100px) { .intro { padding-top: min(3.5vw, 56px); } }
 .hello { font-size: 14px; color: var(--muted); }
 h1 { margin: -14px 0 0; font-family: var(--display); font-size: clamp(28px, 3.2vw, 40px); line-height: 1.15; font-weight: 600; }
 h1 .count { color: var(--accent-2); }

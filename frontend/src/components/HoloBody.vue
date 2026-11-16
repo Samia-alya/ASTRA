@@ -9,7 +9,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { buildBody } from './body/humanoid'
+import { buildBody, type BodyBuild } from './body/humanoid'
 
 export interface HoloZone {
   zone: string
@@ -23,6 +23,8 @@ export interface HoloZone {
 const props = defineProps<{
   zones: HoloZone[]
   openZone?: string | null
+  /** Which figure to draw. The parent re-creates the component (via :key) when it changes. */
+  build?: BodyBuild
   /** Duration of one heartbeat, e.g. "0.81s" (from the latest heart rate). */
   beat: string
 }>()
@@ -62,7 +64,6 @@ const HOLO_VERTEX = /* glsl */ `
     gl_Position = projectionMatrix * mv;
   }`
 const HOLO_FRAGMENT = /* glsl */ `
-  uniform float uTime;
   uniform float uScan;
   uniform vec3 uColor;
   varying vec3 vNormal;
@@ -70,11 +71,12 @@ const HOLO_FRAGMENT = /* glsl */ `
   varying float vY;
   void main() {
     float facing = abs(dot(normalize(vNormal), normalize(vView)));
-    float fresnel = pow(1.0 - facing, 2.0);                         // bright rim
-    float lines = 0.5 + 0.5 * sin(vY * 260.0 - uTime * 2.2);        // fine scan lines
-    float beam = smoothstep(0.07, 0.0, abs(vY - uScan));            // sweeping scan beam
-    float alpha = 0.04 + fresnel * 0.85 + lines * 0.02 + beam * 0.5;
-    vec3 color = uColor * (0.55 + fresnel * 0.9) + vec3(0.7, 1.0, 0.95) * beam * 0.6;
+    float rim = 1.0 - facing;
+    float fresnel = pow(rim, 1.6);                                  // soft body shading
+    float edge = smoothstep(0.62, 0.9, rim);                        // crisp bright outline
+    float beam = smoothstep(0.05, 0.0, abs(vY - uScan));            // sweeping scan beam
+    float alpha = 0.16 + fresnel * 0.5 + edge * 0.6 + beam * 0.45;
+    vec3 color = uColor * (0.62 + fresnel * 0.7 + edge * 0.8) + vec3(0.7, 1.0, 0.95) * beam * 0.6;
     gl_FragColor = vec4(color, alpha);
   }`
 
@@ -82,7 +84,8 @@ function track<T extends { dispose: () => void }>(x: T): T { disposables.push(x)
 
 function buildScene(el: HTMLDivElement) {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  // The figure is small: render at 2x at least (3x at most) so edges stay crisp.
+  renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio, 2), 3))
   renderer.setClearColor(0x000000, 0)
   el.appendChild(renderer.domElement)
 
@@ -91,35 +94,43 @@ function buildScene(el: HTMLDivElement) {
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50)
   camera.position.set(0, 0, 4.0)
 
-  const uniforms = { uTime: { value: 0 }, uScan: { value: 0 }, uColor: { value: new THREE.Color(TEAL) } }
+  const uniforms = { uScan: { value: 0 }, uColor: { value: new THREE.Color(TEAL) } }
   const holo = track(new THREE.ShaderMaterial({
     uniforms, vertexShader: HOLO_VERTEX, fragmentShader: HOLO_FRAGMENT,
-    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    transparent: true, depthWrite: false, side: THREE.FrontSide, blending: THREE.AdditiveBlending,
   }))
-  const wire = track(new THREE.MeshBasicMaterial({ color: TEAL, wireframe: true, transparent: true, opacity: 0.05,
+  const wire = track(new THREE.MeshBasicMaterial({ color: TEAL, wireframe: true, transparent: true, opacity: 0.1,
     depthWrite: false, blending: THREE.AdditiveBlending }))
+  // Inner anatomy is drawn on top of the shell (no depth test) so it shows through the skin.
   const additive = (color: number, opacity: number) => track(new THREE.MeshBasicMaterial({ color, transparent: true,
-    opacity, depthWrite: false, blending: THREE.AdditiveBlending }))
+    opacity, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }))
 
   const body = new THREE.Group()
   scene.add(body)
-  const skin = buildBody(84, holo, 80000)   // smooth translucent surface
-  const mesh = buildBody(40, wire, 30000)   // coarser copy drawn as a faint wireframe
-  body.add(skin, mesh)
+  const build = props.build ?? 'neutral'
+  const skin = buildBody(104, holo, 130000, build)   // smooth translucent surface
+  const mesh = buildBody(44, wire, 30000, build)     // coarser copy drawn as a faint wireframe
+  // Depth-only copy of the surface: hides the far side of the body, so the near side is drawn
+  // once instead of two layers blending into each other (that double layer looked blurry).
+  const shell = new THREE.Mesh(skin.geometry, track(new THREE.MeshBasicMaterial({ colorWrite: false })))
+  shell.scale.copy(skin.scale)
+  shell.frustumCulled = false
+  shell.renderOrder = -1
+  body.add(shell, skin, mesh)
   disposables.push(skin.geometry, mesh.geometry)
 
   // Glowing points scattered over the surface.
   const src = skin.geometry.getAttribute('position')
   const used = skin.geometry.drawRange.count
   const dots: number[] = []
-  for (let k = 0; k < 2000; k++) {
+  for (let k = 0; k < 1400; k++) {
     const i = Math.floor(Math.random() * used)
     dots.push(src.getX(i) * skin.scale.x, src.getY(i) * skin.scale.y, src.getZ(i) * skin.scale.z)
   }
   const dotGeo = track(new THREE.BufferGeometry())
   dotGeo.setAttribute('position', new THREE.Float32BufferAttribute(dots, 3))
-  body.add(new THREE.Points(dotGeo, track(new THREE.PointsMaterial({ color: 0xc8fff3, size: 0.009, sizeAttenuation: true,
-    transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending }))))
+  body.add(new THREE.Points(dotGeo, track(new THREE.PointsMaterial({ color: 0xc8fff3, size: 0.007, sizeAttenuation: true,
+    transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending }))))
 
   // Inner anatomy: brain, heart, spine.
   const sphere = track(new THREE.SphereGeometry(1, 20, 14))
@@ -187,7 +198,6 @@ function buildScene(el: HTMLDivElement) {
   const tick = () => {
     frame = requestAnimationFrame(tick)
     const t = (performance.now() - started) / 1000
-    uniforms.uTime.value = t
     const scan = 0.95 - ((t * 0.3) % 1) * 1.9
     uniforms.uScan.value = scan
     scanRing.position.y = scan

@@ -11,6 +11,7 @@
 import { computed, ref } from 'vue'
 import { BODY_ZONES } from '../bodyZones'
 import HoloBody from './HoloBody.vue'
+import type { BodyBuild } from './body/humanoid'
 import type { IndicatorMeta, IndicatorStatus } from '../types'
 import { LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER } from '../types'
 
@@ -20,6 +21,8 @@ const props = defineProps<{
   selected: string | null
   /** Body zone whose panel is open, if any. */
   openZone?: string | null
+  /** Figure shown in the ring: 'male', 'female' or 'neutral' (default). */
+  build?: BodyBuild
 }>()
 const emit = defineEmits<{ select: [indicator: string]; zone: [zone: string] }>()
 const box = ref<HTMLDivElement | null>(null)
@@ -155,7 +158,7 @@ function onKey(e: KeyboardEvent, action: () => void) {
   <!-- 3D body, centred in the ring (same place as the silhouette). Sized in viewBox units: a circle of
        radius 222 around the centre (300, 300), just inside the arcs. -->
   <div v-if="holo" class="body3d">
-    <HoloBody :zones="zones" :open-zone="openZone" :beat="beat" @zone="emit('zone', $event)" @unavailable="holo = false" />
+    <HoloBody :key="build ?? 'neutral'" :build="build" :zones="zones" :open-zone="openZone" :beat="beat" @zone="emit('zone', $event)" @unavailable="holo = false" />
   </div>
   </div>
 </template>

@@ -9,6 +9,7 @@ import DevicesCard from './components/DevicesCard.vue'
 import BodyZonePanel from './components/BodyZonePanel.vue'
 import { BODY_ZONES, ZONE_ORDER } from './bodyZones'
 import VitalRing from './components/VitalRing.vue'
+import { buildFor } from './crew'
 import FlightSurgeonReport from './components/FlightSurgeonReport.vue'
 import { envFor } from './environments'
 import type { Astronaut, ChecksResponse, Device, IndicatorMeta, IndicatorStatus, Measurement, StatusResponse } from './types'
@@ -289,7 +290,7 @@ watch(selected, loadHistory)
   <main v-if="status">
     <section class="hero">
       <div class="ring-wrap">
-        <VitalRing ref="ring" :indicators="status.indicators" :meta="meta" :selected="selected" :open-zone="openZone"
+        <VitalRing ref="ring" :build="buildFor(status.astronaut.name)" :indicators="status.indicators" :meta="meta" :selected="selected" :open-zone="openZone"
           @select="selected = $event" @zone="onZone" />
         <div class="zone-hint">
           <p>Tap a body part to learn more.</p>

@@ -18,7 +18,7 @@ from sqlmodel import Session, SQLModel, delete, select
 
 from app.config import indicators
 from app.database import engine, init_db
-from app.models import Astronaut, Device, Measurement
+from app.models import Astronaut, AutonomyAction, Device, Measurement, ReportStep, ReportTransmission
 
 DAYS = 30
 SEED = 42
@@ -69,7 +69,8 @@ GENERATED_BY = {
 
 
 def seed(db_engine: Engine) -> list[tuple[int, str, str, str]]:
-    """Replace all astronauts, devices and measurements with freshly generated SIMULATED data.
+    """Replace all astronauts, devices, measurements, checked onboard steps and sent reports with
+    freshly generated SIMULATED data.
 
     Never drops tables (it also runs at API startup via seed_if_empty). Returns the created
     devices as (id, astronaut name, device name, token).
@@ -82,6 +83,10 @@ def seed(db_engine: Engine) -> list[tuple[int, str, str, str]]:
     # so the simulated data also passes the plausibility validation of manual entries.
     steps = {k: m["input"]["step"] for k, m in indicators().items()}
     with Session(db_engine) as s:
+        # Children first: no orphan checks or reports from a previous generation.
+        s.exec(delete(AutonomyAction))
+        s.exec(delete(ReportStep))
+        s.exec(delete(ReportTransmission))
         s.exec(delete(Measurement))
         s.exec(delete(Device))
         s.exec(delete(Astronaut))

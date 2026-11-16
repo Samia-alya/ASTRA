@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import type { EnvironmentInfo } from '../environments'
-import { buildReport, REPORT_FOOTER, REPORT_TITLE, reportSections } from '../report'
+import { buildReport, type OnboardLog, REPORT_FOOTER, REPORT_TITLE, reportSections } from '../report'
 import type { IndicatorMeta, StatusResponse } from '../types'
 
 const props = defineProps<{
@@ -9,8 +9,10 @@ const props = defineProps<{
   status: StatusResponse
   meta: Record<string, IndicatorMeta>
   env: EnvironmentInfo
+  /** Earth-independent mode only: checked onboard steps and last transmission. */
+  onboard?: OnboardLog | null
 }>()
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; send: [] }>()
 
 const dialog = ref<HTMLDialogElement | null>(null)
 const note = ref('')
@@ -20,8 +22,12 @@ const sent = ref(false)
 let opener: HTMLElement | null = null
 let copyTimer: number | undefined
 
-const r = computed(() => reportSections(props.status, props.meta, props.env, generatedAt.value))
-const reportText = computed(() => buildReport(props.status, props.meta, props.env, note.value, generatedAt.value))
+const onboard = computed(() => props.onboard ?? null)
+const r = computed(() => reportSections(props.status, props.meta, props.env, generatedAt.value, onboard.value))
+const reportText = computed(() =>
+  buildReport(props.status, props.meta, props.env, note.value, generatedAt.value, onboard.value),
+)
+const autonomous = computed(() => props.status.autonomy.active)
 const isCritical = computed(() => r.value.overallLevel === 'critical')
 
 watch(
@@ -67,13 +73,18 @@ async function copy() {
 
 function send() {
   sent.value = true
+  emit('send')
 }
 </script>
 
 <template>
   <dialog ref="dialog" class="report" aria-labelledby="fs-report-title" @close="onClose">
     <div class="scroll">
-      <p v-if="isCritical" class="banner" role="alert">
+      <p v-if="isCritical && autonomous" class="banner" role="alert">
+        <strong>Earth-independent mode.</strong> A reply from Earth takes at least
+        {{ Math.round(status.autonomy.earliest_reply_s / 60) }} min. Keep following the onboard monitoring steps.
+      </p>
+      <p v-else-if="isCritical" class="banner" role="alert">
         <strong>Critical.</strong> Contact the flight surgeon now. Do not wait for the next scheduled check-in.
       </p>
 
@@ -110,6 +121,18 @@ function send() {
       <ul class="others">
         <li v-for="o in r.others" :key="o.key"><span>{{ o.label }}</span><span>{{ o.value }}</span></li>
       </ul>
+
+      <template v-if="r.onboard">
+        <h3>Onboard actions (Earth-independent mode)</h3>
+        <p v-if="!r.onboard.actions.length" class="nominal">No onboard step checked yet.</p>
+        <ul v-else class="others">
+          <li v-for="a in r.onboard.actions" :key="a.indicator + a.step">
+            <span>{{ a.indicator }}: {{ a.step }}</span>
+            <span>{{ a.at }}<span v-if="!a.sent" class="unsent"> · not yet sent</span></span>
+          </li>
+        </ul>
+        <p v-if="r.onboard.sentAt" class="nominal">Last sent to Earth: {{ r.onboard.sentAt }}</p>
+      </template>
 
       <label class="note">
         <span>Note to flight surgeon</span>
@@ -209,6 +232,7 @@ textarea::placeholder { color: var(--muted); }
   margin: 0; padding: 12px 16px; border-radius: 12px; font-size: 15px;
   background: var(--panel-2); color: var(--text); border: 1px solid var(--accent);
 }
+.unsent { color: var(--watch); }
 .footer { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
 
 .actions {

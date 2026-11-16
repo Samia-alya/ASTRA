@@ -14,33 +14,38 @@ Checked against the 2025 guide: https://www.spaceappschallenge.org/resources/pro
 
 ## 30-second video script
 
+Story: **the same Critical alert, two different responses**, depending on the distance to Earth
+(inspired by NASA's Earth-Independent Medical Operations concept).
+
 | Time | Screen | Voice-over / subtitle |
 |---|---|---|
-| 0:00–0:04 | Title card | "We're team SpaceMed3. This is Houston Pulse." |
-| 0:04–0:09 | Rivera on the lunar base, vital ring | "Far from Earth, astronauts must spot health changes themselves. Houston Pulse compares every signal with *their own* baseline." |
-| 0:09–0:15 | Click the Sleep arc → chart + reasons | "Day 87: Rivera's sleep is slipping and resting heart rate is up. The app says why, and what to do now." |
-| 0:15–0:22 | Switch to Moreau, Mars transit, Critical | "On the way to Mars, a 38.4 °C fever crosses a documented CDC threshold: contact the flight surgeon — with a 22-minute signal delay." |
-| 0:22–0:27 | Log a measurement → ring updates | "Every alert is explained, sourced, and never presented as a diagnosis." |
-| 0:27–0:30 | Logo + "Built with NASA Human Research Program resources" | "Houston Pulse: your mission control, on board." |
+| 0:00–0:03 | Title card | "We're team SpaceMed3. This is Houston Pulse." |
+| 0:03–0:07 | Tanaka on the ISS, vital ring all nominal | "Houston Pulse compares every signal with the astronaut's own baseline." |
+| 0:07–0:13 | Log 38.4 °C for Tanaka → Critical, "Earth can respond in time" box | "On the ISS, a 38.4 °C fever crosses a CDC threshold. Earth is seconds away: contact the flight surgeon now." |
+| 0:13–0:20 | Switch to Moreau, Mars transit → red "Earth cannot respond in time — act on board" panel | "Same alert on the way to Mars: 22 minutes of delay each way. A reply would take an hour, so the crew acts on board." |
+| 0:20–0:26 | Tick two steps (times appear) → Send report to Earth → Demo speed ×60, countdown runs | "Monitoring steps, timed and logged, a re-check every 2 hours, and a report on its way to Earth." |
+| 0:26–0:30 | SIMULATED reply appears → logo + "Built with NASA Human Research Program resources" | "Monitoring, not diagnosis. Houston Pulse: your mission control, on board." |
 
 Tips: record the real app at 1440 px wide, slow mouse movements, add English subtitles.
+Turn on **Demo speed ×60 before** clicking *Send report to Earth*; the full reply countdown then takes
+about 1 minute, so cut the wait in editing (keep the "SIMULATED" label visible).
 
 ## 7-slide outline
 
 1. **Houston Pulse** — one-line pitch, plus:
    - Team: **SpaceMed3** — Samia Al Yahiaoui, Nourhane Anani, Teddy Emmanuel Kana Boumkwo II
    - Challenge: *Create Health Monitoring Software for Astronauts on Space Missions*
-2. **The problem** — 5 hazards of spaceflight (NASA HRP); long missions = astronauts assess their own health, far from Earth.
-3. **Our solution** — screenshot of the vital ring; personal baseline, explained alerts, guidance.
-4. **How it works** — data → personal baseline + trend → documented thresholds → Nominal / Watch / Critical with reasons.
-5. **Demo story** — Tanaka (nominal), Rivera (watch: sleep, mood, heart rate), Moreau (critical: fever on a Mars transit).
-6. **Built responsibly** — every threshold sourced (AHA, NHLBI, ADA, CDC); simulated data clearly labelled; not a diagnosis.
-7. **Next steps** — radiation dose, SpO₂, exercise, vision (other NASA HRP risks); wearable sensors.
+2. **The problem** — 5 hazards of spaceflight (NASA HRP); the farther from Earth, the longer the signal delay (3–22 min one-way to Mars): the crew must manage alone.
+3. **Our solution** — screenshot of the vital ring; personal baseline, explained alerts, guidance, documented thresholds.
+4. **Same alert, two responses** — side by side: Tanaka on the ISS, 38.4 °C → "contact the flight surgeon now" | Moreau on the way to Mars → Earth-independent mode. Rule: Critical **and** round trip > 10 min.
+5. **Earth-independent mode** — screenshot of the panel: onboard monitoring steps with times, re-measure every 2 h, report to Earth with countdown, SIMULATED reply. Inspired by NASA EIMO (sources in the README).
+6. **Built responsibly** — every threshold sourced (AHA, NHLBI, ADA, CDC); simulated data clearly labelled; monitoring and communication only: no diagnosis, no medication, no treatment.
+7. **Next steps** — radiation dose, SpO₂, exercise, vision (other NASA HRP risks); wearable sensors; real onboard procedures.
 
 ## Final checklist
 
 - [ ] `python -m pytest -q` passes in `backend/`
-- [ ] `python -m scripts.generate_data` run just before the demo (fresh dates; wipes manual entries — the backend only auto-seeds an empty database)
+- [ ] `python -m scripts.generate_data` re-run **just before** the demo (from `backend/`): fresh dates, and it erases the 38.4 °C fever logged by hand for Tanaka plus the onboard steps checked and reports sent during rehearsals (the backend only auto-seeds an empty database)
 - [ ] App tested on the demo laptop (backend + frontend running)
 - [ ] Demo video or slides uploaded, link public, opened in a private window
 - [ ] GitHub repo public, README up to date

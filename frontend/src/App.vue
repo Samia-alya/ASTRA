@@ -10,8 +10,12 @@ import BodyZonePanel from './components/BodyZonePanel.vue'
 import { BODY_ZONES, ZONE_ORDER } from './bodyZones'
 import VitalRing from './components/VitalRing.vue'
 import FlightSurgeonReport from './components/FlightSurgeonReport.vue'
-import { envFor } from './environments'
-import type { Astronaut, ChecksResponse, Device, IndicatorMeta, IndicatorStatus, Measurement, StatusResponse } from './types'
+import AutonomyPanel from './components/AutonomyPanel.vue'
+import { envFor, loadEnvironments } from './environments'
+import { formatUtc, type OnboardLog } from './report'
+import type {
+  Astronaut, AutonomyResponse, ChecksResponse, Device, IndicatorMeta, IndicatorStatus, Measurement, StatusResponse,
+} from './types'
 import { fmt, LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, plainName } from './types'
 import { periodStats } from './stats'
 import { sourceText, useNow } from './time'
@@ -92,6 +96,37 @@ const reportOpen = ref(false)
 const env = computed(() => envFor(status.value?.astronaut.environment ?? ''))
 const isCritical = computed(() => status.value?.overall_level === 'critical')
 
+// Earth-independent mode (critical alert + Earth too far to answer in time).
+const autonomy = ref<AutonomyResponse | null>(null)
+const autonomous = computed(() => !!status.value?.autonomy.active)
+
+async function loadAutonomy() {
+  const id = astronautId.value
+  autonomy.value = id !== null && autonomous.value ? await api.autonomy(id) : null
+}
+
+const onboard = computed<OnboardLog | null>(() => {
+  const a = autonomy.value
+  if (!a) return null
+  const actions = a.groups
+    .flatMap((g) => g.steps.filter((s) => s.checked_at).map((s) => ({
+      indicator: g.label, step: s.text, ts: s.checked_at!, sent: s.in_last_report,
+    })))
+    .sort((x, y) => x.ts.localeCompare(y.ts))
+    .map(({ indicator, step, ts, sent }) => ({ indicator, step, at: formatUtc(new Date(ts)), sent }))
+  return { actions, sentAt: a.report_sent_at ? formatUtc(new Date(a.report_sent_at)) : null }
+})
+
+async function onReportSend() {
+  if (!autonomous.value || astronautId.value === null) return
+  try {
+    await api.sendReport(astronautId.value)
+    await loadAutonomy()
+  } catch (e) {
+    error.value = (e as Error).message
+  }
+}
+
 const greeting = computed(() => {
   const h = new Date().getHours()
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
@@ -165,6 +200,11 @@ const deltaText = computed(() => {
 const guidance = computed(() => {
   const s = sel.value
   if (!s) return ''
+  // Earth-independent mode: "contact your flight surgeon now" would contradict the onboard panel.
+  if (autonomous.value && s.level === 'critical') {
+    return 'Earth cannot respond in time. Follow the onboard monitoring steps in the panel above, '
+      + 'then send a report to Earth. Re-measure every 2 hours.'
+  }
   return selMeta.value?.guidance?.[s.level] ?? 'Keep your regular measurement schedule.'
 })
 
@@ -177,6 +217,7 @@ async function loadStatus() {
     status.value = s
     checks.value = c
     devices.value = d
+    await loadAutonomy()
     if (!selected.value) selected.value = flagged.value[0]?.indicator ?? status.value.indicators[0]?.indicator ?? null
     await loadHistory()
   } catch (e) {
@@ -191,7 +232,7 @@ async function loadHistory() {
 
 onMounted(async () => {
   try {
-    ;[astronauts.value, meta.value] = await Promise.all([api.astronauts(), api.indicators()])
+    ;[astronauts.value, meta.value] = await Promise.all([api.astronauts(), api.indicators(), loadEnvironments()])
     astronautId.value = astronauts.value[0]?.id ?? null
   } catch {
     error.value = 'Cannot reach the API. Is the backend running on port 8000?'
@@ -234,6 +275,7 @@ async function refresh() {
     checks.value = c
     devices.value = d
     if (h && sel === selected.value) history.value = h
+    await loadAutonomy() // a live device reading can switch Earth-independent mode on or off
     error.value = ''
   } catch (e) {
     error.value = `Live update failed: ${(e as Error).message}`
@@ -317,6 +359,18 @@ watch(selected, loadHistory)
       </div>
     </section>
 
+    <AutonomyPanel v-if="autonomy && astronautId !== null" :astronaut-id="astronautId" :data="autonomy"
+      @changed="loadAutonomy" @preview="reportOpen = true" />
+    <section v-else-if="isCritical" class="contact-now" aria-labelledby="contact-now-title">
+      <div>
+        <h2 id="contact-now-title">Earth can respond in time</h2>
+        <p>{{ status.autonomy.reason }}</p>
+      </div>
+      <button type="button" class="primary critical" aria-haspopup="dialog" @click="reportOpen = true">
+        Contact flight surgeon now
+      </button>
+    </section>
+
     <section class="detail" v-if="sel">
       <div class="card chart-card">
         <div class="chart-head">
@@ -369,8 +423,8 @@ watch(selected, loadHistory)
         <p>{{ selMeta?.why_in_space }}</p>
         <h2>What you can do now</h2>
         <p>{{ guidance }}</p>
-        <button class="primary" :class="{ critical: isCritical }" type="button" aria-haspopup="dialog"
-          @click="reportOpen = true">
+        <button v-if="!autonomous" class="primary" :class="{ critical: isCritical }" type="button"
+          aria-haspopup="dialog" @click="reportOpen = true">
           {{ isCritical ? 'Contact flight surgeon now' : 'Message flight surgeon' }}
         </button>
       </div>
@@ -389,7 +443,8 @@ watch(selected, loadHistory)
       </div>
     </section>
 
-    <FlightSurgeonReport :open="reportOpen" :status="status" :meta="meta" :env="env" @close="reportOpen = false" />
+    <FlightSurgeonReport :open="reportOpen" :status="status" :meta="meta" :env="env" :onboard="onboard"
+      @close="reportOpen = false" @send="onReportSend" />
   </main>
 
   <footer class="foot">
@@ -481,6 +536,14 @@ h1 .count { color: var(--accent-2); }
   min-height: 44px; padding: 0 16px; border-radius: 10px; border: none; cursor: pointer;
   background: var(--watch); color: var(--on-watch); font-weight: 600; font-size: 14px;
 }
+
+.contact-now {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
+  padding: 20px 24px; border-radius: 22px; background: var(--panel); border: 1.5px solid var(--critical);
+}
+.contact-now h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+.contact-now p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--text-2); max-width: 72ch; }
+.contact-now .primary { flex: 0 1 280px; min-width: 220px; padding: 0 20px; }
 
 .log-row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
 .form-card { flex: 2 1 440px; min-width: 0; }

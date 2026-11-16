@@ -1,0 +1,29 @@
+{
+  "_README": "Mission environments. One-way signal delay = distance / speed of light (299,792 km/s), computed at load time in app/config/__init__.py from distance_km (and distance_range_km when the distance varies). The Earth-independent mode rule uses the worst case (distance_km). Distances: NASA NSSDCA planetary fact sheets.",
+  "speed_of_light_km_s": 299792,
+  "environments": {
+    "station": {
+      "name": "Low Earth orbit",
+      "one_way_delay_s": 1,
+      "source": "Prototype approximation (≈ 1 s, near real-time relay through ground and satellite networks). Not derived from a distance."
+    },
+    "lunar_base": {
+      "name": "Lunar base",
+      "distance_km": 384400,
+      "source": "Moon semimajor axis 0.3844 × 10^6 km / 299,792 km/s ≈ 1.28 s. NASA NSSDCA Moon Fact Sheet: https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html"
+    },
+    "mars_transit": {
+      "name": "Mars transit",
+      "distance_km": 401400000,
+      "distance_range_km": [54600000, 401400000],
+      "source": "Distance from Earth: minimum 54.6 × 10^6 km, maximum 401.4 × 10^6 km; / 299,792 km/s ≈ 182 s to 1,339 s (3 to 22 min). The worst case (maximum) is used. NASA NSSDCA Mars Fact Sheet: https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html"
+    }
+  },
+  "autonomy": {
+    "_README": "PROTOTYPE DESIGN CHOICES, NOT NASA RULES. Earth-independent mode is active when the overall level is critical AND the round trip (2 x one_way_delay_s) exceeds round_trip_threshold_s. ground_response_s is an assumed time for the flight surgeon to read and answer a report; it is only used to estimate earliest_reply_s and the countdown, never in the rule itself.",
+    "round_trip_threshold_s": 600,
+    "ground_response_s": 900,
+    "tight_check_interval_hours": 2,
+    "episode_window_hours": 24
+  }
+}

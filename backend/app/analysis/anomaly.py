@@ -20,7 +20,7 @@ from datetime import timedelta
 import pandas as pd
 from scipy.stats import linregress
 
-from app.config import indicators, thresholds
+from app.config import display_value, indicators, thresholds
 
 BASELINE_DAYS = 10   # length of the personal reference period
 RECENT_DAYS = 5      # recent window, excluded from the baseline
@@ -91,7 +91,8 @@ def analyse(indicator: str, df: pd.DataFrame) -> IndicatorStatus:
             status.level = "attention"
             where = "above" if z > 0 else "below"
             status.reasons.append(
-                f"Current value {status.value:g} is well {where} your personal baseline ({mean:.1f})."
+                f"Current value {display_value(indicator, status.value)} is well {where} "
+                f"your personal baseline ({display_value(indicator, mean)})."
             )
 
     # --- Layer 1b: sustained trend over the recent window ---------------

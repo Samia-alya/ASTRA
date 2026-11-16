@@ -18,6 +18,7 @@ indicators, compares each one with the astronaut's **own baseline**, flags unusu
 - **Explained alerts** — every flag comes with a sentence saying why.
 - **Guidance** — what the indicator measures, why it matters in space (NASA Human Research Program), and what to do now.
 - **Mission context** — environment (orbit, lunar base, Mars transit) and one-way signal delay to Earth.
+- **Earth-independent mode** — on a critical alert far from Earth, the app guides the crew through onboard monitoring steps while a report travels to Earth ([details](#earth-independent-mode)).
 - **Manual entry** — log a new measurement; the analysis updates instantly.
 
 ## Indicators and analysis
@@ -55,7 +56,77 @@ The backend generates it automatically on startup when the database is empty; ex
 |---|---|---|---|
 | Dr. K. Tanaka | Low Earth orbit | Everything steady | Nominal |
 | Cmdr. A. Rivera | Lunar base | Sleep and mood dropping, resting heart rate rising | Watch |
-| Eng. L. Moreau | Mars transit (3–22 min delay) | Temperature rising past 38 °C, blood pressure trending up | Critical |
+| Eng. L. Moreau | Mars transit (3–22 min delay) | Temperature rising past 38 °C, blood pressure trending up | Critical, Earth-independent mode |
+
+## Earth-independent mode
+
+Inspired by NASA's **Earth-Independent Medical Operations (EIMO)** concept (Human Research Program,
+Exploration Medical Capability): the farther a crew is from Earth, the less it can rely on real-time
+support from the ground. Houston Pulse gives **the same Critical alert a different response depending on
+the distance to Earth**.
+
+**Rule** (`backend/app/analysis/autonomy.py`) — based only on signal physics:
+
+> Earth-independent mode is **active** when `overall_level == "critical"` **and** the signal round trip
+> `2 × one_way_delay_s` is longer than `round_trip_threshold_s` (600 s = 10 min).
+
+| Environment | One-way delay | Round trip | Critical alert → |
+|---|---|---|---|
+| Low Earth orbit (station) | ≈ 1 s (prototype approximation) | ≈ 2 s | contact the flight surgeon now |
+| Lunar base | 1.28 s | 2.6 s | contact the flight surgeon now |
+| Mars transit, best case | 182 s (3 min) | 6 min | contact the flight surgeon now (not used by the demo) |
+| Mars transit, worst case (used) | 1,339 s (22 min) | 45 min | **Earth-independent mode** |
+
+**Signal delays** — one-way delay = distance / speed of light (299,792 km/s), computed by the backend
+from the distances in `environments.json`:
+
+| Environment | Distance (NASA NSSDCA) | Calculation |
+|---|---|---|
+| Lunar base | 384,400 km (Moon semimajor axis, [Moon Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html)) | 384,400 / 299,792 ≈ 1.28 s |
+| Mars transit, minimum | 54.6 × 10⁶ km ([Mars Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html), distance from Earth) | 54.6 × 10⁶ / 299,792 ≈ 182 s ≈ 3 min |
+| Mars transit, maximum | 401.4 × 10⁶ km (same sheet) | 401.4 × 10⁶ / 299,792 ≈ 1,339 s ≈ 22 min |
+| Low Earth orbit | — | ≈ 1 s, a prototype approximation for relays through ground and satellite networks (not a distance calculation) |
+
+The header, the Earth-independent panel and the report all use these same values (`GET /environments`
+and the `autonomy` block), shown as e.g. *22 min one-way (worst case, range 3–22 min)*.
+
+The status endpoint returns an `autonomy` block: `active`, `one_way_delay_s`,
+`earliest_reply_s` (= 2 × delay + ground response time) and a readable `reason`.
+
+**Configuration** (`backend/app/config/environments.json`). These are **prototype design choices, not NASA rules**:
+
+| Key | Value | Used for |
+|---|---|---|
+| `environments.*.distance_km` → one-way delay | 1 s / 1.28 s / 1,339 s | the rule; Mars uses the worst case of its 182–1,339 s range |
+| `autonomy.round_trip_threshold_s` | 600 | the rule |
+| `autonomy.ground_response_s` | 900 (15 min) | assumed time for the flight surgeon to answer; **only** for `earliest_reply_s` and the countdown, never in the rule |
+| `autonomy.tight_check_interval_hours` | 2 | re-measurement interval of the critical indicator(s) in this mode (instead of 24 h) |
+| `autonomy.episode_window_hours` | 24 | episode length (see below) |
+
+The frontend reads the environments from `GET /environments`, so the delays are defined in one place.
+
+**What the crew sees when the mode is active**
+- Banner *“Earth cannot respond in time — act on board”*, the one-way delay and the earliest possible reply.
+- For each critical indicator, 5 onboard steps from `indicators.json` (`autonomy_steps`). They are
+  **monitoring and communication steps only** (re-measure to confirm, check related indicators, notify the
+  Crew Medical Officer, open the onboard procedure, log symptoms). No diagnosis, no medication, no treatment.
+  Each checked step is stored with its time (`AutonomyAction` table).
+- Today's checks asks for the critical indicator **every 2 h** and shows the time left before the next measurement.
+- **Send report to Earth** stores the sending time (`ReportTransmission` table) and the flight surgeon
+  report lists the checked steps with their times; steps checked after the last transmission are marked
+  *not yet sent*. The steps included are frozen when the report is sent (`ReportStep` table), so the step
+  count and the simulated reply always match what was actually sent. Countdowns: *Reaches Earth in mm:ss*, then *Earliest reply in mm:ss*.
+- **Demo speed ×60** (clearly labelled simulation) speeds up the countdown for presentations. When the reply
+  time has passed, a **SIMULATED** flight surgeon reply is shown; no real ground link exists.
+
+**Episodes.** To keep it simple, only steps checked and reports sent in the **last 24 hours** count. A step
+checked during a past alert therefore never shows as already done during a new one. `python -m scripts.generate_data`
+also clears all checked steps and sent reports.
+
+**NASA sources**
+- [Earth-Independent Medical Operations (EIMO) Concept of Operations](https://ntrs.nasa.gov/citations/20250000009)
+- [Challenges in Communications for Exploration Class Missions](https://ntrs.nasa.gov/citations/20250002660)
+- [Clinical Decision Support System for Earth-Independent Medical Operations](https://www.nasa.gov/?p=648602)
 
 Every crew member carries the same standard kit of five **simulated** devices (see [Devices](#devices-simulated)).
 Each generated reading is attributed to the device that measures it (`source: "device"`); **mood is self-reported**,
@@ -71,11 +142,13 @@ The generator prints each device's id and token at the end.
 ```
 backend/                       FastAPI + SQLite (Python)
   app/main.py                  app entry point, CORS, routers
-  app/models.py                tables: Astronaut, Device, Measurement
+  app/models.py                tables: Astronaut, Device, Measurement, AutonomyAction, ReportTransmission, ReportStep
   app/routers/                 REST endpoints
   app/analysis/anomaly.py      baseline + trend + documented thresholds
-  app/analysis/checks.py       today's checks (one measurement per indicator per 24 h)
-  app/config/indicators.json   labels, explanations, guidance, sources
+  app/analysis/checks.py       today's checks (one measurement per indicator per 24 h, 2 h in Earth-independent mode)
+  app/analysis/autonomy.py     Earth-independent mode rule
+  app/config/indicators.json   labels, explanations, guidance, onboard steps, sources
+  app/config/environments.json signal delays and Earth-independent mode parameters
   app/config/thresholds.json   documented reference thresholds (with sources)
   app/config/devices.json      device kinds, indicators each may send, what they are modeled on
   scripts/generate_data.py     simulated demo data (+ simulated devices)
@@ -85,6 +158,7 @@ frontend/                      Vue 3 + TypeScript + Vite + Plotly
   src/App.vue                  page layout and headline logic
   src/components/VitalRing.vue ring + body silhouette
   src/components/IndicatorGrid.vue, HistoryChart.vue, MeasurementForm.vue, TodayChecks.vue
+  src/components/AutonomyPanel.vue  Earth-independent mode panel (steps, report, countdown)
   src/api.ts, src/types.ts     API client and shared types
 ```
 
@@ -103,7 +177,7 @@ On first start the database is empty, so the simulated demo data is generated au
 After that, restarts keep everything (including manually logged measurements).
 
 - **Fresh dates before a demo:** `python -m scripts.generate_data` wipes the database and regenerates
-  the simulated data ending 1 hour ago (manual entries are lost).
+  the simulated data ending 1 hour ago (manual entries, checked onboard steps and sent reports are lost).
 - **Start with an empty database:** set `HOUSTON_PULSE_NO_SEED=1` to disable the auto-seed
   (e.g. `HOUSTON_PULSE_NO_SEED=1 uvicorn app.main:app --port 8000`).
 
@@ -122,13 +196,17 @@ App: http://localhost:5173
 | Method | Route | Description |
 |---|---|---|
 | GET | `/astronauts` | list crew members |
-| GET | `/astronauts/{id}/status` | per indicator: `value`, `baseline`, `level`, `trend`, `reasons[]`, `last_source` (`{type, device_name}`), plus `overall_level` |
+| GET | `/astronauts/{id}/status` | per indicator: `value`, `baseline`, `level`, `trend`, `reasons[]`, `last_source` (`{type, device_name}`), plus `overall_level` and the `autonomy` block |
 | GET | `/astronauts/{id}/measurements?indicator=&start=&end=` | history; each row has `source` (`simulated` / `manual` / `device`), `device_id`, `device_name` |
 | GET | `/astronauts/{id}/devices` | paired devices: `kind`, `name`, `simulated`, `last_seen`, `status` (`live` < 2 min, `synced` < 24 h, `stale` ≥ 24 h, `never`), `indicators`, `latest` (latest reading this device sent per indicator: `indicator`, `label`, `unit`, `value`, `timestamp`). Never returns the token |
 | POST | `/devices/{device_id}/readings` | header `X-Device-Token`; body `{readings: [{indicator, value, timestamp?}]}` (1–100). 401 bad token, 422 if a reading is not supported by the device kind or fails the [input validation](#input-validation) (whole batch rejected). Stored with `source: "device"` |
-| GET | `/astronauts/{id}/checks` | today's checks: per indicator `done` (measured in the last 24 h), `last_timestamp`, `hours_since_last`, plus `done_count` / `total` |
+| GET | `/astronauts/{id}/checks` | today's checks: per indicator `done` (measured in the last 24 h), `last_timestamp`, `hours_since_last`, plus `done_count` / `total`; in Earth-independent mode the critical indicators also have `interval_hours` (2) and `next_due_in_s` |
 | POST | `/astronauts/{id}/measurements` | body `{indicator, value, timestamp?}`, stored with `source: "manual"`; 422 if the value fails the [input validation](#input-validation) |
-| GET | `/indicators` | metadata, explanations, guidance, sources |
+| GET | `/indicators` | metadata, explanations, guidance, onboard steps, sources |
+| GET | `/environments` | environments (name, one-way delay, source) and Earth-independent mode parameters |
+| GET | `/astronauts/{id}/autonomy` | onboard steps of each critical indicator with `checked_at` and `in_last_report`, plus `report_sent_at`, `report_steps` (frozen at sending) and `new_steps_since_report` (last 24 h only) |
+| PUT / DELETE | `/astronauts/{id}/autonomy/actions/{indicator}/{step_index}` | check / uncheck an onboard step |
+| POST | `/astronauts/{id}/autonomy/report` | record that a report was sent to Earth now, with the steps checked so far |
 
 ## Devices (simulated)
 

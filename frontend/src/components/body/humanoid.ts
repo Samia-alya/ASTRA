@@ -23,7 +23,9 @@ export type BodyBuild = 'male' | 'female' | 'neutral'
 
 // Shapes are defined for the left half only (x >= 0); the field is mirrored with |x|.
 // Three builds share the same height and pose, so hotspots stay in place.
-interface Build { ellipsoids: Ellipsoid[]; limbs: Limb[] }
+// The torso is blended with a large radius so it forms one smooth surface, while arms, head
+// and legs keep a tight blend.
+interface Build { ellipsoids: Ellipsoid[]; torso: Ellipsoid[]; torsoLimbs: Limb[]; limbs: Limb[] }
 
 // Limbs and extremities for a given shoulder position, arm thickness, hip position and thigh radius.
 // Arms hang relaxed, slightly away from the body.
@@ -45,44 +47,50 @@ const EXTREMITIES = (shoulderX: number): Ellipsoid[] => [
 // shoulder width about 23% vs 21% of height, hips about 18% vs 19.5%, a slightly narrower waist.
 const BUILDS: Record<BodyBuild, Build> = {
   neutral: {
-    ellipsoids: [...EXTREMITIES(0.175),
+    ellipsoids: EXTREMITIES(0.175),
+    torso: [
       [0, 0.53, 0.0, 0.145, 0.15, 0.1],     // chest
       [0, 0.37, 0.005, 0.12, 0.13, 0.086],  // abdomen
       [0, 0.23, 0.0, 0.155, 0.1, 0.1],      // pelvis
     ],
-    limbs: [
+    torsoLimbs: [
       [0, 0.69, 0, 0, 0.77, 0.005, 0.043, 0.04],     // neck
       [0, 0.635, 0, 0.155, 0.625, 0, 0.055, 0.05],   // shoulder line
-      ...LIMBS_FOR(0.175, 0.94, 0.092, 0.078),
     ],
+    limbs: LIMBS_FOR(0.175, 0.94, 0.092, 0.078),
   },
   male: {
-    ellipsoids: [...EXTREMITIES(0.188),
+    ellipsoids: EXTREMITIES(0.188),
+    torso: [
       [0, 0.53, 0.0, 0.152, 0.15, 0.104],   // chest
       [0, 0.37, 0.005, 0.126, 0.13, 0.09],  // abdomen
       [0, 0.23, 0.0, 0.15, 0.098, 0.098],   // pelvis
     ],
-    limbs: [
+    torsoLimbs: [
       [0, 0.69, 0, 0, 0.77, 0.005, 0.046, 0.043],    // neck
       [0, 0.637, 0, 0.168, 0.627, 0, 0.057, 0.053],  // shoulder line
-      ...LIMBS_FOR(0.188, 1, 0.09, 0.077),
     ],
+    limbs: LIMBS_FOR(0.188, 1, 0.09, 0.077),
   },
   female: {
-    ellipsoids: [...EXTREMITIES(0.162),
+    ellipsoids: EXTREMITIES(0.162),
+    torso: [
       [0, 0.53, 0.0, 0.136, 0.145, 0.094],       // chest
       [0.056, 0.545, 0.064, 0.04, 0.04, 0.034],  // bust
       [0, 0.375, 0.005, 0.112, 0.125, 0.082],    // abdomen
-      [0, 0.228, 0.0, 0.162, 0.103, 0.101],      // pelvis
+      [0, 0.228, 0.0, 0.152, 0.103, 0.101],      // pelvis
     ],
-    limbs: [
+    torsoLimbs: [
       [0, 0.69, 0, 0, 0.77, 0.005, 0.04, 0.038],     // neck
       [0, 0.633, 0, 0.143, 0.623, 0, 0.051, 0.046],  // shoulder line
-      ...LIMBS_FOR(0.162, 0.88, 0.095, 0.08),
     ],
+    limbs: LIMBS_FOR(0.162, 0.88, 0.095, 0.08),
   },
 }
 const BLEND = 0.022
+const TORSO_BLEND = 0.08     // inside the trunk: no creases at the waist
+const HIP_BLEND = 0.045      // thighs into the pelvis
+const THIGH = 2              // index of the thigh in LIMBS_FOR
 
 function smin(a: number, b: number, k: number): number {
   const h = Math.max(k - Math.abs(a - b), 0) / k
@@ -119,11 +127,14 @@ function sdLimb(x: number, y: number, z: number, l: Limb): number {
 
 /** Signed distance to the body surface (negative inside). */
 export function bodyDistance(x: number, y: number, z: number, build: BodyBuild = 'neutral'): number {
-  const { ellipsoids, limbs } = BUILDS[build]
+  const { ellipsoids, torso, torsoLimbs, limbs } = BUILDS[build]
   const ax = Math.abs(x)
   let d = 1e9
+  for (const e of torso) d = smin(d, sdEllipsoid(ax, y, z, e), TORSO_BLEND)
+  for (const l of torsoLimbs) d = smin(d, sdLimb(ax, y, z, l), TORSO_BLEND * 0.6)
+  d = smin(d, sdLimb(ax, y, z, limbs[THIGH]), HIP_BLEND)
   for (const e of ellipsoids) d = smin(d, sdEllipsoid(ax, y, z, e), BLEND)
-  for (const l of limbs) d = smin(d, sdLimb(ax, y, z, l), BLEND)
+  limbs.forEach((l, i) => { if (i !== THIGH) d = smin(d, sdLimb(ax, y, z, l), BLEND) })
   return d
 }
 

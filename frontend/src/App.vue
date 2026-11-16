@@ -6,6 +6,7 @@ import IndicatorGrid from './components/IndicatorGrid.vue'
 import MeasurementForm from './components/MeasurementForm.vue'
 import TodayChecks from './components/TodayChecks.vue'
 import DevicesCard from './components/DevicesCard.vue'
+import SourcesDialog from './components/SourcesDialog.vue'
 import BodyZonePanel from './components/BodyZonePanel.vue'
 import { BODY_ZONES, ZONE_ORDER } from './bodyZones'
 import VitalRing from './components/VitalRing.vue'
@@ -32,6 +33,7 @@ const devices = ref<Device[]>([])
 
 // --- Body zone info panel (opened by clicking a body part on the ring) ---
 const openZone = ref<string | null>(null)
+const sourcesDialog = ref<InstanceType<typeof SourcesDialog> | null>(null)
 const ring = ref<InstanceType<typeof VitalRing> | null>(null)
 const zonePanel = ref<InstanceType<typeof BodyZonePanel> | null>(null)
 let zoneOpener: HTMLElement | SVGElement | null = null
@@ -474,9 +476,11 @@ watch(selected, loadHistory)
   </main>
 
   <footer class="foot">
-    <span>Built for the NASA Space Apps Challenge 2026 · Space context: NASA Human Research Program</span>
+    <span>Built for the NASA Space Apps Challenge 2026 · Space context: NASA Human Research Program ·
+      <button type="button" class="sources-link" aria-haspopup="dialog" @click="sourcesDialog?.open()">Sources</button></span>
     <span>Simulated data · Monitoring aid, not a medical diagnosis</span>
   </footer>
+  <SourcesDialog ref="sourcesDialog" />
 </template>
 
 <style scoped>
@@ -587,5 +591,10 @@ h1 .count { color: var(--accent-2); }
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px;
   margin-top: 40px; padding-top: 16px; border-top: 1px solid #16292d; font-size: 12px; color: #7f9996;
 }
+.sources-link {
+  padding: 4px 2px; margin: -4px 0; border: none; background: none; cursor: pointer;
+  font: inherit; color: inherit; text-decoration: underline; text-underline-offset: 2px;
+}
+.sources-link:hover { color: var(--text-2); }
 .error { color: var(--critical); }
 </style>

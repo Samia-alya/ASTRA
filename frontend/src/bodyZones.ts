@@ -1,7 +1,6 @@
 // Body parts shown on the vital ring silhouette. General information only, no medical advice.
 // Space context: NASA Human Research Program, https://www.nasa.gov/hrp/risks/
-
-export const HRP_SOURCE = { label: 'NASA Human Research Program', url: 'https://www.nasa.gov/hrp/risks/' }
+// (listed with every other reference in the footer "Sources" dialog, see sources.ts)
 
 export interface BodyZone {
   key: string

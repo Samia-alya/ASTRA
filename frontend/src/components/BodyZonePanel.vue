@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { BODY_ZONES, HRP_SOURCE } from '../bodyZones'
+import { BODY_ZONES } from '../bodyZones'
 import type { IndicatorStatus } from '../types'
 import { fmt, LEVEL_LABEL, LEVEL_ORDER } from '../types'
 
@@ -66,8 +66,6 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
         </button>
       </li>
     </ul>
-
-    <p class="source">Source: <a :href="HRP_SOURCE.url" target="_blank" rel="noopener">{{ HRP_SOURCE.label }}</a></p>
   </section>
 </template>
 
@@ -107,7 +105,4 @@ h2:focus-visible { outline-offset: 4px; }
 .rows .label { font-size: 14px; color: var(--text-2); min-width: 0; }
 .rows .value { font-size: 15px; font-weight: 600; white-space: nowrap; }
 .rows small { font-size: 12px; font-weight: 400; color: var(--muted); }
-
-.source { margin: 0; font-size: 12px; color: var(--muted); }
-.source a { color: var(--accent); }
 </style>

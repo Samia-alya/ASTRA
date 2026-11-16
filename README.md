@@ -74,7 +74,7 @@ the distance to Earth**.
 
 | Environment | One-way delay | Round trip | Critical alert → |
 |---|---|---|---|
-| Low Earth orbit (station) | ≈ 1 s (prototype approximation) | ≈ 2 s | contact the flight surgeon now |
+| Low Earth orbit (station) | ≈ 1 s (prototype approximation) | under 1 s | contact the flight surgeon now |
 | Lunar base | 1.28 s | 2.6 s | contact the flight surgeon now |
 | Mars transit, best case | 182 s (3 min) | 6 min | contact the flight surgeon now (not used by the demo) |
 | Mars transit, worst case (used) | 1,339 s (22 min) | 45 min | **Earth-independent mode** |
@@ -309,3 +309,21 @@ The simulated demo data is rounded to these steps, so it passes the same checks.
 Other risks identified by NASA's Human Research Program that Houston Pulse could monitor next:
 radiation dose (personal dosimeter), blood oxygen saturation (hypoxia risk), daily exercise
 (bone and muscle loss countermeasure), and vision checks (Spaceflight Associated Neuro-ocular Syndrome).
+
+## Limitations
+
+Our thresholds come from Earth-based guidelines. Some may need adjusting for space: resting core body
+temperature can rise about 1 °C during long-duration missions (Stahn et al., 2017,
+https://doi.org/10.1038/s41598-017-15560-w), so the 38 °C fever cutoff would need space-specific calibration.
+
+## Sources
+
+- NASA Human Research Program, hazards and risks: https://www.nasa.gov/hrp/risks/
+- NASA NSSDCA Mars Fact Sheet (Earth–Mars distance, Mars signal delay): https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html
+- NASA NSSDCA Moon Fact Sheet (Earth–Moon distance, lunar signal delay): https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html
+- NASA ISS communication delay: https://www.nasa.gov/missions/station/data-rate-increase-on-the-international-space-station-supports-future-exploration/
+- Medical thresholds: see the [reference thresholds table](#reference-thresholds-general-adult-population--not-spaceflight-flight-rules-which-are-not-public) (AHA, NHLBI, ADA, CDC).
+
+## AI use
+
+The body illustration used in the app and on our title slide was AI-generated and is labelled as such.

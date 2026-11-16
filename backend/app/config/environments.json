@@ -5,7 +5,8 @@
     "station": {
       "name": "Low Earth orbit",
       "one_way_delay_s": 1,
-      "source": "Prototype approximation (≈ 1 s, near real-time relay through ground and satellite networks). Not derived from a distance."
+      "round_trip_label": "under 1 s",
+      "source": "Prototype approximation (≈ 1 s, near real-time relay through ground and satellite networks). Not derived from a distance. The rule uses one_way_delay_s; round_trip_label is display text only (ISS communications: https://www.nasa.gov/missions/station/data-rate-increase-on-the-international-space-station-supports-future-exploration/)."
     },
     "lunar_base": {
       "name": "Lunar base",

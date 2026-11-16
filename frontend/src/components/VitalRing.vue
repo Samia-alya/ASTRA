@@ -160,6 +160,7 @@ function onKey(e: KeyboardEvent, action: () => void) {
   <div v-if="holo" class="body3d">
     <HoloBody :key="build ?? 'neutral'" :build="build" :zones="zones" :open-zone="openZone" :beat="beat" @zone="emit('zone', $event)" @unavailable="holo = false" />
   </div>
+  <p class="ai-caption">AI-generated illustration</p>
   </div>
 </template>
 
@@ -168,6 +169,11 @@ function onKey(e: KeyboardEvent, action: () => void) {
 .ring { width: 100%; height: auto; display: block; }
 /* viewBox is 780 x 680 starting at (-90, -40): circle r=222 at (300, 300) -> percentages below. */
 .body3d { position: absolute; left: 21.54%; top: 17.35%; width: 56.92%; height: 65.29%; }
+/* Discreet label in the empty bottom-right corner, outside the orbit; never blocks a click. */
+.ai-caption {
+  position: absolute; right: 2%; bottom: 1%; margin: 0; pointer-events: none;
+  font-size: 11px; color: var(--muted); opacity: 0.85;
+}
 .arc, .zone { cursor: pointer; outline: none; }
 .arc-line { transition: stroke-width .25s ease, stroke .3s; }
 .arc:hover .arc-line, .arc:focus-visible .arc-line { filter: brightness(1.25); }

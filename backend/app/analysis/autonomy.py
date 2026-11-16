@@ -34,6 +34,8 @@ def autonomy_state(overall_level: str, environment: str) -> dict:
     else:
         delay = float(env["one_way_delay_s"])
     round_trip = 2 * delay
+    # Display text only (e.g. "under 1 s" for low Earth orbit); the rule below uses the numbers.
+    round_trip_text = (env or {}).get("round_trip_label") or _minutes(round_trip)
     earliest = round_trip + rule["ground_response_s"]
     critical = overall_level == "critical"
     active = critical and round_trip > rule["round_trip_threshold_s"]
@@ -41,12 +43,13 @@ def autonomy_state(overall_level: str, environment: str) -> dict:
     if active:
         reason = (
             f"Critical alert. A reply from Earth takes at least {_minutes(earliest)} "
-            f"({_minutes(round_trip)} signal round trip + {_minutes(rule['ground_response_s'])} ground response). "
+            f"({round_trip_text} signal round trip + {_minutes(rule['ground_response_s'])} ground response). "
             "Follow the onboard monitoring steps now and send a report to Earth."
         )
     elif critical:
         reason = (
-            f"Critical alert. The signal round trip to Earth is only {_minutes(round_trip)}: "
+            f"Critical alert. The signal round trip to Earth is "
+            f"{round_trip_text if (env or {}).get('round_trip_label') else 'only ' + round_trip_text}: "
             "contact your flight surgeon now."
         )
     else:

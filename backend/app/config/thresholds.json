@@ -1,35 +1,47 @@
 {
-  "_README": "Documented reference thresholds. These are the ONLY rules that can trigger 'critical'. Each value comes from a published guideline for the general adult population (see url). They are NOT spaceflight-specific flight rules, which are not public. null = no documented escalation threshold, so only the personal-baseline rules apply. A bound is strict (value must be beyond it) unless '<bound>_inclusive' is true.",
+  "_README": "Documented reference thresholds for the general adult population (see url). They are NOT spaceflight-specific flight rules, which are not public. Two kinds of bounds: 'attention_low/high' (documented, out of the normal range but not an emergency) raise the level to Watch; 'critical_low/high' (documented emergency or clinically significant level) are the ONLY rules that can trigger Critical. null or missing = no documented bound, so only the personal-baseline rules apply. A bound is strict (value must be beyond it) unless '<bound>_inclusive' is true. 'source_low'/'source_high' override 'source' for one side. '<bound>_reason' is the reason shown to the astronaut ({value} and {unit} are filled in); the source is appended in parentheses.",
   "heart_rate": {
-    "critical_low": null,
-    "critical_high": 100,
+    "attention_high": 100,
+    "attention_high_reason": "Above the normal resting range of {value} {unit}",
     "source": "American Heart Association",
     "url": "https://www.heart.org/en/health-topics/high-blood-pressure/the-facts-about-high-blood-pressure/all-about-heart-rate-pulse",
-    "note": "AHA: normal resting heart rate is 60-100 bpm; above 100 at rest is tachycardia. No low bound: below 60 (bradycardia) is common in fit people, so it is left to the personal baseline."
+    "note": "AHA: normal resting heart rate is 60-100 bpm; above 100 at rest is tachycardia. That is outside the normal range, not by itself an emergency, so it is attention (Watch), not critical. No low bound: below 60 (bradycardia) is common in fit people, so it is left to the personal baseline."
   },
   "bp_systolic": {
-    "critical_low": 90,
+    "attention_low": 90,
+    "attention_low_reason": "Below {value} {unit}, defined as low blood pressure",
     "critical_high": 180,
+    "critical_high_reason": "Above {value} {unit}, the hypertensive crisis level",
     "source": "AHA (high) / NHLBI (low)",
+    "source_high": "American Heart Association",
+    "source_low": "NHLBI",
     "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
     "url_low": "https://www.nhlbi.nih.gov/health/low-blood-pressure",
-    "note": "AHA: higher than 180 systolic = hypertensive crisis, consult a doctor immediately. NHLBI: low blood pressure is lower than 90/60 mm Hg (NHLBI also notes it is often harmless without symptoms)."
+    "note": "AHA: higher than 180 systolic = hypertensive crisis, consult a doctor immediately -> critical. NHLBI: low blood pressure is lower than 90/60 mm Hg, but it is often harmless without symptoms -> attention (Watch), not critical."
   },
   "bp_diastolic": {
-    "critical_low": 60,
+    "attention_low": 60,
+    "attention_low_reason": "Below {value} {unit}, defined as low blood pressure",
     "critical_high": 120,
+    "critical_high_reason": "Above {value} {unit}, the hypertensive crisis level",
     "source": "AHA (high) / NHLBI (low)",
+    "source_high": "American Heart Association",
+    "source_low": "NHLBI",
     "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
     "url_low": "https://www.nhlbi.nih.gov/health/low-blood-pressure",
-    "note": "AHA: higher than 120 diastolic = hypertensive crisis. NHLBI: low blood pressure is lower than 90/60 mm Hg."
+    "note": "AHA: higher than 120 diastolic = hypertensive crisis -> critical. NHLBI: low blood pressure is lower than 90/60 mm Hg, often harmless without symptoms -> attention (Watch), not critical."
   },
   "glucose": {
     "critical_low": 54,
-    "critical_high": 240,
+    "critical_low_reason": "Below {value} {unit}, clinically significant (level 2) hypoglycemia",
+    "attention_high": 240,
+    "attention_high_reason": "Above {value} {unit}, the level at which ADA guidance says to check for ketones",
     "source": "American Diabetes Association",
+    "source_low": "ADA / EASD",
+    "source_high": "American Diabetes Association",
     "url": "https://diabetes.org/living-with-diabetes/treatment-care/hyperglycemia",
     "url_low": "https://doi.org/10.2337/dc16-2215",
-    "note": "ADA/EASD: below 54 mg/dL = clinically significant (level 2) hypoglycemia. ADA: above 240 mg/dL, check for ketones. Both come from diabetes care guidance."
+    "note": "ADA/EASD: below 54 mg/dL = clinically significant (level 2) hypoglycemia -> critical. ADA: above 240 mg/dL, check for ketones: a reason to check and follow up, not by itself an emergency -> attention (Watch). Both come from diabetes care guidance."
   },
   "temperature": {
     "critical_low": 35.0,
@@ -38,7 +50,7 @@
     "source": "CDC",
     "url": "https://www.cdc.gov/winter-weather/prevention/index.html",
     "url_high": "https://www.cdc.gov/port-health/php/definitions-symptoms-reportable-illness/index.html",
-    "note": "CDC: fever = measured temperature of at least 38 °C (100.4 °F). CDC: below 35 °C (95 °F) is an emergency (hypothermia)."
+    "note": "CDC: fever = measured temperature of at least 38 °C (100.4 °F); on a long mission, far from care, a fever is treated as critical. CDC: below 35 °C (95 °F) is an emergency (hypothermia) -> critical."
   },
   "sleep_hours": {
     "critical_low": null,

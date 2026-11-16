@@ -15,8 +15,8 @@
     "why_in_space": "Weightlessness changes blood circulation and how the heart and blood vessels work. NASA's Human Research Program studies these cardiovascular adaptations.",
     "guidance": {
       "normal": "Nothing to do. Keep your regular measurement schedule.",
-      "attention": "Measure again at rest. The American Heart Association suggests checking resting heart rate first thing in the morning, before getting up.",
-      "critical": "Above 100 bpm at rest is defined as tachycardia (AHA). Measure again at rest, then contact your flight surgeon."
+      "attention": "Measure again at rest. The American Heart Association suggests checking resting heart rate first thing in the morning, before getting up. Above 100 bpm at rest is outside the normal range (AHA): if it stays there, mention it to your flight surgeon at your next check-in.",
+      "critical": "Heart rate has no emergency threshold in this prototype. If you feel unwell, contact your flight surgeon."
     },
     "autonomy_steps": [
       "Rest for 5 minutes, then measure your heart rate again to confirm the reading.",
@@ -46,7 +46,7 @@
     "why_in_space": "Part of the cardiovascular picture NASA monitors during spaceflight.",
     "guidance": {
       "normal": "Nothing to do. Keep your regular measurement schedule.",
-      "attention": "Sit still for a few minutes and measure again.",
+      "attention": "Sit still for a few minutes and measure again. Low blood pressure without symptoms is often harmless (NHLBI); tell your flight surgeon if you feel dizzy or faint.",
       "critical": "The American Heart Association advises waiting five minutes and measuring again. If it is still outside the range, contact your flight surgeon now."
     },
     "autonomy_steps": [
@@ -78,7 +78,7 @@
     "why_in_space": "Part of the cardiovascular picture NASA monitors during spaceflight.",
     "guidance": {
       "normal": "Nothing to do. Keep your regular measurement schedule.",
-      "attention": "Sit still for a few minutes and measure again.",
+      "attention": "Sit still for a few minutes and measure again. Low blood pressure without symptoms is often harmless (NHLBI); tell your flight surgeon if you feel dizzy or faint.",
       "critical": "The American Heart Association advises waiting five minutes and measuring again. If it is still outside the range, contact your flight surgeon now."
     },
     "autonomy_steps": [
@@ -110,7 +110,7 @@
     "why_in_space": "A balanced diet is essential on long missions. NASA lists inadequate food and nutrition as a spaceflight risk.",
     "guidance": {
       "normal": "Nothing to do. Keep your regular measurement schedule.",
-      "attention": "Note when you last ate and measure again later.",
+      "attention": "Note when you last ate and measure again later. If it stays above 240 mg/dL (ADA), tell your flight surgeon.",
       "critical": "This value is outside the range set by American Diabetes Association guidance. Measure again, then contact your flight surgeon now."
     },
     "autonomy_steps": [

@@ -3,8 +3,9 @@
 Two layers:
   1. Deviation from the astronaut's OWN baseline -> can raise "attention".
      These are statistical rules, not medical thresholds.
-  2. Documented reference thresholds (config/thresholds.json) -> the only
-     rule allowed to raise "critical".
+  2. Documented reference thresholds (config/thresholds.json):
+     - attention bounds (outside the normal range, not an emergency) -> can raise "attention";
+     - critical bounds -> the only rule allowed to raise "critical".
 Every flag comes with human-readable reasons.
 
 Timeline used for one indicator (today = last measurement):
@@ -109,15 +110,28 @@ def analyse(indicator: str, df: pd.DataFrame) -> IndicatorStatus:
                     f"{sens} trend over {RECENT_DAYS} days ({reg.slope:+.2f} per day)."
                 )
 
-    # --- Layer 2: documented thresholds (only source of "critical") -----
+    # --- Layer 2: documented thresholds ----------------------------------
+    # attention_* bounds (out of the normal range, not an emergency) raise the level to Watch and
+    # never lower a Critical; critical_* bounds are the ONLY rule that can produce "critical".
     t = thresholds().get(indicator, {})
-    low, high, src = t.get("critical_low"), t.get("critical_high"), t.get("source")
-    if low is not None and _beyond(status.value, low, below=True, inclusive=t.get("critical_low_inclusive", False)):
-        status.level = "critical"
-        status.reasons.append(f"Below the reference threshold of {low:g} ({src}).")
-    if high is not None and _beyond(status.value, high, below=False, inclusive=t.get("critical_high_inclusive", False)):
-        status.level = "critical"
-        status.reasons.append(f"Above the reference threshold of {high:g} ({src}).")
+    unit = indicators().get(indicator, {}).get("unit", "")
+    for kind in ("attention", "critical"):
+        for side in ("low", "high"):
+            key = f"{kind}_{side}"
+            bound = t.get(key)
+            below = side == "low"
+            if bound is None or not _beyond(status.value, bound, below=below, inclusive=t.get(f"{key}_inclusive", False)):
+                continue
+            if kind == "critical":
+                status.level = "critical"
+                default = f"{'Below' if below else 'Above'} the reference threshold of {bound:g}"
+            else:
+                if status.level == "normal":
+                    status.level = "attention"
+                default = f"{'Below' if below else 'Above'} the documented level of {{value}} {{unit}}"
+            text = t.get(f"{key}_reason", default).format(value=f"{bound:g}", unit=unit)
+            src = t.get(f"source_{side}") or t.get("source")
+            status.reasons.append(f"{text} ({src}).")
 
     if status.level == "normal":
         status.reasons.append("No unusual change detected.")

@@ -6,7 +6,7 @@ noise around the astronaut's latest heart rate. Standard library only.
 
 Usage (from backend/, with the API running):
     python -m scripts.device_simulator --device-id 1 --token <token printed by generate_data>
-    python -m scripts.device_simulator --device-id 1 --token <token> --spike   # ramp to ~110 bpm
+    python -m scripts.device_simulator --device-id 6 --token <token> --spike   # Tanaka's shirt: ~110 bpm -> Watch
 
 Ctrl+C stops it.
 """
@@ -21,7 +21,7 @@ import urllib.error
 import urllib.request
 
 INDICATOR = "heart_rate"
-SPIKE_TARGET = 110.0  # bpm, above the documented AHA threshold (100), to show a live critical alert
+SPIKE_TARGET = 110.0  # bpm, above the AHA normal resting range (100): shows a live Watch alert
 SPIKE_SECONDS = 30.0
 NOISE_BPM = 1.5
 DEFAULT_BASE = 65.0  # only used if the astronaut has no heart rate yet
@@ -64,7 +64,9 @@ def main() -> None:
     p.add_argument("--token", required=True, help="device token printed by scripts.generate_data")
     p.add_argument("--interval", type=float, default=5.0, help="seconds between readings (default 5)")
     p.add_argument("--api", default="http://localhost:8000", help="API base URL")
-    p.add_argument("--spike", action="store_true", help=f"ramp up to ~{SPIKE_TARGET:.0f} bpm over ~30 s")
+    p.add_argument("--spike", action="store_true",
+                   help=f"ramp up to ~{SPIKE_TARGET:.0f} bpm over ~30 s: crosses the AHA normal resting range "
+                        "(100 bpm) and shows a live Watch alert (try it on Tanaka's shirt, device 6)")
     args = p.parse_args()
     api = args.api.rstrip("/")
 

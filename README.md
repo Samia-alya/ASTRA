@@ -27,22 +27,22 @@ The six indicators are the ones suggested by the challenge: heart rate, blood pr
 
 | Level | Rule |
 |---|---|
-| **Watch** (`attention`) | Today's value is ≥ 2.5 standard deviations from the personal baseline (10 days before the last 5), **or** a significant trend (p < 0.05) over the last 5 days — only in the direction that matters (e.g. less sleep, not more). These are statistical rules, not medical thresholds. |
-| **Critical** | The value crosses a **documented reference threshold** (`backend/app/config/thresholds.json`). This is the only rule that can trigger Critical. |
+| **Watch** (`attention`) | Today's value is ≥ 2.5 standard deviations from the personal baseline (10 days before the last 5), **or** a significant trend (p < 0.05) over the last 5 days — only in the direction that matters (e.g. less sleep, not more) — **or** it crosses a documented *Watch* bound (outside the normal range, not an emergency). |
+| **Critical** | The value crosses a documented **critical** bound (`backend/app/config/thresholds.json`). This is the only rule that can trigger Critical; a Watch bound never lowers a Critical. |
 
 ### Reference thresholds (general adult population — not spaceflight flight rules, which are not public)
 
-| Indicator | Critical if | Source |
-|---|---|---|
-| Heart rate | > 100 bpm at rest (tachycardia) | [American Heart Association](https://www.heart.org/en/health-topics/high-blood-pressure/the-facts-about-high-blood-pressure/all-about-heart-rate-pulse) |
-| Blood pressure | > 180 systolic and/or > 120 diastolic (hypertensive crisis) | [American Heart Association](https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings) |
-| Blood pressure | < 90 systolic or < 60 diastolic (low blood pressure) | [NHLBI](https://www.nhlbi.nih.gov/health/low-blood-pressure) |
-| Blood glucose | < 54 mg/dL (level 2 hypoglycemia) | [ADA / EASD, Diabetes Care 2017](https://doi.org/10.2337/dc16-2215) |
-| Blood glucose | > 240 mg/dL (check for ketones) | [American Diabetes Association](https://diabetes.org/living-with-diabetes/treatment-care/hyperglycemia) |
-| Body temperature | ≥ 38.0 °C (fever) | [CDC](https://www.cdc.gov/port-health/php/definitions-symptoms-reportable-illness/index.html) |
-| Body temperature | < 35.0 °C (hypothermia, emergency) | [CDC](https://www.cdc.gov/winter-weather/prevention/index.html) |
-| Sleep | none — ≥ 7 h recommended, used in guidance only | [CDC / AASM](https://archive.cdc.gov/www_cdc_gov/media/releases/2016/p0215-enough-sleep.html) |
-| Mood | none — self-reported 1–5 scale, not a clinical instrument | — |
+Not every out-of-range value is an emergency: a **Watch** bound means "outside the normal range, check again
+and follow up"; a **Critical** bound means a documented emergency or clinically significant level.
+
+| Indicator | Watch if | Critical if | Source |
+|---|---|---|---|
+| Heart rate | > 100 bpm at rest (above the normal 60–100 range, tachycardia) | — (no emergency bound) | [American Heart Association](https://www.heart.org/en/health-topics/high-blood-pressure/the-facts-about-high-blood-pressure/all-about-heart-rate-pulse) |
+| Blood pressure | < 90 systolic or < 60 diastolic (low; often harmless without symptoms) | > 180 systolic or > 120 diastolic (hypertensive crisis) | [NHLBI](https://www.nhlbi.nih.gov/health/low-blood-pressure) (low) · [American Heart Association](https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings) (high) |
+| Blood glucose | > 240 mg/dL (check for ketones) | < 54 mg/dL (level 2 hypoglycemia) | [American Diabetes Association](https://diabetes.org/living-with-diabetes/treatment-care/hyperglycemia) (high) · [ADA / EASD, Diabetes Care 2017](https://doi.org/10.2337/dc16-2215) (low) |
+| Body temperature | — | ≥ 38.0 °C (fever) or < 35.0 °C (hypothermia) | [CDC](https://www.cdc.gov/port-health/php/definitions-symptoms-reportable-illness/index.html) (fever) · [CDC](https://www.cdc.gov/winter-weather/prevention/index.html) (hypothermia) |
+| Sleep | — (≥ 7 h recommended, used in guidance only) | — | [CDC / AASM](https://archive.cdc.gov/www_cdc_gov/media/releases/2016/p0215-enough-sleep.html) |
+| Mood | — (self-reported 1–5 scale, not a clinical instrument) | — | — |
 
 Space context for each indicator comes from the [NASA Human Research Program risks](https://www.nasa.gov/hrp/risks/).
 
@@ -249,7 +249,9 @@ python -m scripts.device_simulator --device-id 1 --token <token> --spike   # ram
 ```
 It sends one heart rate reading every 5 s (`--interval`), with small noise around the latest value, to
 `--api` (default `http://localhost:8000`; on Windows, `http://127.0.0.1:8000` avoids a slow IPv6 fallback).
-`--spike` crosses the documented AHA threshold (100 bpm) to show a live critical alert. Ctrl+C stops it.
+`--spike` crosses the AHA normal resting range (above 100 bpm) to show a live **Watch** alert (heart rate has no
+critical bound). For the live demo, use **Tanaka's shirt (device 6)**: all her signals are nominal, so you see
+her heart rate turn Watch live. Ctrl+C stops it.
 
 ### Demo: live devices
 
@@ -272,8 +274,9 @@ Remove-Item Env:HP_SIMULATE_DEVICES   # afterwards, to turn it off for this term
 HP_SIMULATE_DEVICES=1 uvicorn app.main:app --reload --port 8000
 ```
 
-To show a critical alert live, use the external simulator with `--spike` on a shirt (see above). Run it with
-live mode **off**, otherwise the two sources send heart rates to the same shirt at the same time.
+To show an alert appear live, use the external simulator with `--spike` on Tanaka's shirt (device 6, see
+above): her heart rate turns Watch. Run it with live mode **off**, otherwise the two sources send heart rates to
+the same shirt at the same time.
 
 ## Input validation
 

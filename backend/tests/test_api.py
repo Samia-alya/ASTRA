@@ -45,7 +45,13 @@ def test_add_measurement_becomes_latest(client):
     r = client.post("/astronauts/2/measurements", json={"indicator": "heart_rate", "value": 120})
     assert r.status_code == 201 and r.json()["source"] == "manual"
     hr = next(i for i in client.get("/astronauts/2/status").json()["indicators"] if i["indicator"] == "heart_rate")
-    assert hr["value"] == 120 and hr["level"] == "critical"
+    # Above the AHA normal resting range: Watch, not an emergency.
+    assert hr["value"] == 120 and hr["level"] == "attention"
+    assert any("normal resting range" in r for r in hr["reasons"])
+    # A hypertensive crisis value is still critical.
+    client.post("/astronauts/2/measurements", json={"indicator": "bp_systolic", "value": 185})
+    sbp = next(i for i in client.get("/astronauts/2/status").json()["indicators"] if i["indicator"] == "bp_systolic")
+    assert sbp["level"] == "critical"
 
 
 def test_validation_errors(client):

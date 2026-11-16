@@ -313,7 +313,13 @@ watch(selected, loadHistory)
 <template>
   <header class="top">
     <div class="brand">
-      <img src="/favicon.svg?v=2" width="40" height="40" alt="" />
+      <!-- Same drawing as public/favicon.svg, fixed colours for the dark header (no theme media query). -->
+      <svg class="logo" viewBox="0 0 64 64" width="40" height="40" aria-hidden="true" focusable="false">
+        <path d="M51 14 A26 26 0 1 0 58 32" fill="none" stroke="#E6F4F1" stroke-width="4.5" stroke-linecap="round" />
+        <circle cx="55.5" cy="21" r="4.5" fill="#2DD4BF" />
+        <path d="M8 34 H20 L24 25 L30 43 L35 21 L39 34 H50" fill="none" stroke="#2DD4BF" stroke-width="4.5"
+          stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
       <span>Houston Pulse</span>
     </div>
     <div class="meta" v-if="status">
@@ -487,6 +493,7 @@ watch(selected, loadHistory)
 <style scoped>
 .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
 .brand { display: flex; align-items: center; gap: 12px; font-family: var(--display); font-size: 18px; font-weight: 700; }
+.logo { flex: none; }
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; font-size: 14px; color: var(--muted); }
 .crew select {
   font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border);

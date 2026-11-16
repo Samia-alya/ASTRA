@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * "Vital ring": one arc per indicator around a body silhouette.
+ * "Vital ring": one arc per indicator around a rotating holographic body (HoloBody, Three.js).
+ * If WebGL is unavailable the flat silhouette is drawn instead.
  * - Arc colour = indicator level; the selected arc is thicker.
  * - Body dots = worst level of each body zone (indicator.body_zone).
  * - The heart dot beats at the latest heart rate; flagged zones glow.
@@ -9,6 +10,7 @@
  */
 import { computed, ref } from 'vue'
 import { BODY_ZONES } from '../bodyZones'
+import HoloBody from './HoloBody.vue'
 import type { IndicatorMeta, IndicatorStatus } from '../types'
 import { LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER } from '../types'
 
@@ -20,7 +22,9 @@ const props = defineProps<{
   openZone?: string | null
 }>()
 const emit = defineEmits<{ select: [indicator: string]; zone: [zone: string] }>()
-const svg = ref<SVGSVGElement | null>(null)
+const box = ref<HTMLDivElement | null>(null)
+/** false when WebGL is not available: the flat SVG silhouette is used instead. */
+const holo = ref(true)
 
 const C = 300 // centre of the 600x600 viewBox
 const R = 250 // ring radius
@@ -89,7 +93,7 @@ const zones = computed(() =>
 
 /** Give keyboard focus back to a body zone (used when its panel closes). */
 function focusZone(zone: string) {
-  svg.value?.querySelector<SVGGElement>(`[data-zone="${zone}"]`)?.focus()
+  box.value?.querySelector<HTMLElement | SVGGElement>(`[data-zone="${zone}"]`)?.focus()
 }
 defineExpose({ focusZone })
 
@@ -107,7 +111,8 @@ function onKey(e: KeyboardEvent, action: () => void) {
 </script>
 
 <template>
-  <svg ref="svg" viewBox="-90 -40 780 680" class="ring" role="group" aria-label="Vital ring">
+  <div ref="box" class="ring-box">
+  <svg viewBox="-90 -40 780 680" class="ring" role="group" aria-label="Vital ring">
     <circle :cx="C" :cy="C" :r="R + 56" fill="none" stroke="var(--track)" stroke-width="2" stroke-dasharray="2 8"
       stroke-linecap="round" class="orbit" />
     <circle :cx="C" :cy="C" :r="R" fill="none" stroke="var(--track)" stroke-width="12" />
@@ -119,7 +124,7 @@ function onKey(e: KeyboardEvent, action: () => void) {
       <text :x="a.lx" :y="a.ly" :text-anchor="a.anchor" class="arc-label">{{ a.text }}</text>
     </g>
 
-    <g transform="translate(205 120) scale(0.73)">
+    <g v-if="!holo" transform="translate(205 120) scale(0.73)">
       <ellipse cx="130" cy="38" rx="28" ry="34" fill="#143036" class="deco" />
       <path fill="#143036" class="deco"
         d="M116 70 L144 70 L146 84 Q188 88 198 106 L214 232 Q216 244 206 246 L200 246 L184 130 L180 218 L186 276 L178 460 L154 460 L140 290 L120 290 L106 460 L82 460 L74 276 L80 218 L76 130 L60 246 L54 246 Q44 244 46 232 L62 106 Q72 88 114 84 Z" />
@@ -147,10 +152,19 @@ function onKey(e: KeyboardEvent, action: () => void) {
       </g>
     </g>
   </svg>
+  <!-- 3D body, centred in the ring (same place as the silhouette). Sized in viewBox units: a circle of
+       radius 222 around the centre (300, 300), just inside the arcs. -->
+  <div v-if="holo" class="body3d">
+    <HoloBody :zones="zones" :open-zone="openZone" :beat="beat" @zone="emit('zone', $event)" @unavailable="holo = false" />
+  </div>
+  </div>
 </template>
 
 <style scoped>
-.ring { width: 100%; max-width: 580px; height: auto; display: block; margin: 0 auto; }
+.ring-box { position: relative; width: 100%; max-width: 580px; margin: 0 auto; }
+.ring { width: 100%; height: auto; display: block; }
+/* viewBox is 780 x 680 starting at (-90, -40): circle r=222 at (300, 300) -> percentages below. */
+.body3d { position: absolute; left: 21.54%; top: 17.35%; width: 56.92%; height: 65.29%; }
 .arc, .zone { cursor: pointer; outline: none; }
 .arc-line { transition: stroke-width .25s ease, stroke .3s; }
 .arc:hover .arc-line, .arc:focus-visible .arc-line { filter: brightness(1.25); }

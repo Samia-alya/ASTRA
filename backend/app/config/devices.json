@@ -1,0 +1,32 @@
+{
+  "_README": "Device kinds and the indicators each kind may send. Every device in this app is SIMULATED: no real hardware is connected. 'basis' says what the kind is modeled on, with its source.",
+  "smart_shirt": {
+    "label": "Smart shirt",
+    "indicators": ["heart_rate", "bp_systolic"],
+    "basis": "Modeled on the Canadian Space Agency's Bio-Monitor smart shirt used on the ISS, which measures heart activity, blood pressure, breathing, skin temperature, blood oxygen saturation and physical activity. Only heart rate and systolic blood pressure are mapped here: skin temperature is NOT core body temperature, so it never feeds the body temperature indicator.",
+    "source": "Canadian Space Agency",
+    "url": "https://www.asc-csa.gc.ca/eng/sciences/bio-monitor.asp"
+  },
+  "actigraphy_band": {
+    "label": "Actigraphy band",
+    "indicators": ["sleep_hours"],
+    "basis": "Modeled on the actigraphy wrist monitors that NASA planned for Artemis II crew members (ARCHeR study) to track movement and sleep.",
+    "source": "NASA",
+    "url": "https://www.nasa.gov/humans-in-space/artemis-ii-crew-to-advance-human-spaceflight-research/"
+  },
+  "bp_cuff": {
+    "label": "Blood pressure cuff",
+    "indicators": ["bp_systolic", "bp_diastolic"],
+    "basis": "Generic automatic blood pressure cuff (systolic and diastolic)."
+  },
+  "thermometer": {
+    "label": "Thermometer",
+    "indicators": ["temperature"],
+    "basis": "Generic body thermometer."
+  },
+  "glucometer": {
+    "label": "Glucometer",
+    "indicators": ["glucose"],
+    "basis": "Generic blood glucose meter."
+  }
+}

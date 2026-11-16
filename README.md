@@ -128,12 +128,21 @@ also clears all checked steps and sent reports.
 - [Challenges in Communications for Exploration Class Missions](https://ntrs.nasa.gov/citations/20250002660)
 - [Clinical Decision Support System for Earth-Independent Medical Operations](https://www.nasa.gov/?p=648602)
 
+Every crew member carries the same standard kit of five **simulated** devices (see [Devices](#devices-simulated)).
+Each generated reading is attributed to the device that measures it (`source: "device"`); **mood is self-reported**,
+so it stays `source: "simulated"`. The values themselves are identical either way, so the demo story does not change.
+The generator prints each device's id and token at the end.
+
+> **Schema change (devices):** the SQLite schema now has a `device` table and a `measurement.device_id` column.
+> If you have an older `backend/houston_pulse.db`, delete it and rerun `python -m scripts.generate_data`
+> (the generator also drops and recreates the tables itself), then restart the API.
+
 ## Structure
 
 ```
 backend/                       FastAPI + SQLite (Python)
   app/main.py                  app entry point, CORS, routers
-  app/models.py                tables: Astronaut, Measurement, AutonomyAction, ReportTransmission, ReportStep
+  app/models.py                tables: Astronaut, Device, Measurement, AutonomyAction, ReportTransmission, ReportStep
   app/routers/                 REST endpoints
   app/analysis/anomaly.py      baseline + trend + documented thresholds
   app/analysis/checks.py       today's checks (one measurement per indicator per 24 h, 2 h in Earth-independent mode)
@@ -141,7 +150,9 @@ backend/                       FastAPI + SQLite (Python)
   app/config/indicators.json   labels, explanations, guidance, onboard steps, sources
   app/config/environments.json signal delays and Earth-independent mode parameters
   app/config/thresholds.json   documented reference thresholds (with sources)
-  scripts/generate_data.py     simulated demo data
+  app/config/devices.json      device kinds, indicators each may send, what they are modeled on
+  scripts/generate_data.py     simulated demo data (+ simulated devices)
+  scripts/device_simulator.py  simulated device sending live heart rate readings
   tests/                       pytest suite (analysis rules + API)
 frontend/                      Vue 3 + TypeScript + Vite + Plotly
   src/App.vue                  page layout and headline logic
@@ -185,8 +196,10 @@ App: http://localhost:5173
 | Method | Route | Description |
 |---|---|---|
 | GET | `/astronauts` | list crew members |
-| GET | `/astronauts/{id}/status` | per indicator: `value`, `baseline`, `level`, `trend`, `reasons[]`, plus `overall_level` and the `autonomy` block |
-| GET | `/astronauts/{id}/measurements?indicator=&start=&end=` | history |
+| GET | `/astronauts/{id}/status` | per indicator: `value`, `baseline`, `level`, `trend`, `reasons[]`, `last_source` (`{type, device_name}`), plus `overall_level` and the `autonomy` block |
+| GET | `/astronauts/{id}/measurements?indicator=&start=&end=` | history; each row has `source` (`simulated` / `manual` / `device`), `device_id`, `device_name` |
+| GET | `/astronauts/{id}/devices` | paired devices: `kind`, `name`, `simulated`, `last_seen`, `status` (`live` < 2 min, `synced` < 24 h, `stale` ≥ 24 h, `never`), `indicators`, `latest` (latest reading this device sent per indicator: `indicator`, `label`, `unit`, `value`, `timestamp`). Never returns the token |
+| POST | `/devices/{device_id}/readings` | header `X-Device-Token`; body `{readings: [{indicator, value, timestamp?}]}` (1–100). 401 bad token, 422 if a reading is not supported by the device kind or fails the [input validation](#input-validation) (whole batch rejected). Stored with `source: "device"` |
 | GET | `/astronauts/{id}/checks` | today's checks: per indicator `done` (measured in the last 24 h), `last_timestamp`, `hours_since_last`, plus `done_count` / `total`; in Earth-independent mode the critical indicators also have `interval_hours` (2) and `next_due_in_s` |
 | POST | `/astronauts/{id}/measurements` | body `{indicator, value, timestamp?}`, stored with `source: "manual"`; 422 if the value fails the [input validation](#input-validation) |
 | GET | `/indicators` | metadata, explanations, guidance, onboard steps, sources |
@@ -194,6 +207,73 @@ App: http://localhost:5173
 | GET | `/astronauts/{id}/autonomy` | onboard steps of each critical indicator with `checked_at` and `in_last_report`, plus `report_sent_at`, `report_steps` (frozen at sending) and `new_steps_since_report` (last 24 h only) |
 | PUT / DELETE | `/astronauts/{id}/autonomy/actions/{indicator}/{step_index}` | check / uncheck an onboard step |
 | POST | `/astronauts/{id}/autonomy/report` | record that a report was sent to Earth now, with the steps checked so far |
+
+## Devices (simulated)
+
+Astronauts don't only type values: on the ISS, the Canadian Space Agency's Bio-Monitor smart shirt records
+vital signs, and NASA planned actigraphy wrist monitors for the Artemis II crew. We cannot connect real
+hardware, so Houston Pulse implements the real architecture (paired devices, per-device token, readings
+endpoint, validation) and demos it with **simulated** devices. **None of them is a real integration**, and
+every device name says "(simulated)".
+
+| Kind | May send | Modeled on |
+|---|---|---|
+| `smart_shirt` | heart rate, systolic blood pressure | CSA Bio-Monitor smart shirt used on the ISS ([CSA](https://www.asc-csa.gc.ca/eng/sciences/bio-monitor.asp)). Its skin temperature is **not** mapped to body temperature: skin temperature is not core body temperature. |
+| `actigraphy_band` | sleep | Actigraphy wrist monitors planned for the Artemis II crew, ARCHeR study ([NASA](https://www.nasa.gov/humans-in-space/artemis-ii-crew-to-advance-human-spaceflight-research/)) |
+| `bp_cuff` | systolic + diastolic blood pressure | generic automatic blood pressure cuff |
+| `thermometer` | body temperature | generic body thermometer |
+| `glucometer` | blood glucose | generic blood glucose meter |
+
+The kinds live in `backend/app/config/devices.json`. **Every crew member carries the same standard kit** (all
+simulated), and the generated history of each indicator comes from one device:
+
+| Device | Generated history |
+|---|---|
+| Bio-Monitor shirt (simulated) | heart rate |
+| Sleep band (simulated) | sleep |
+| BP cuff (simulated) | systolic + diastolic blood pressure (the cuff is the reference; the shirt's systolic is not duplicated) |
+| Thermometer (simulated) | body temperature |
+| Glucometer (simulated) | blood glucose |
+| — | mood: self-reported, no device can measure it |
+
+Device ids follow the crew order, five per person: Rivera 1–5, Tanaka 6–10, Moreau 11–15 (the shirt is the
+first of each: 1, 6, 11). Rivera's thermometer and glucometer show "Not synced for 25 h" because her glucose and
+temperature checks are due.
+
+**Run the device simulator** (stdlib only) while the API is running:
+```bash
+cd backend
+python -m scripts.generate_data          # prints each device id + token
+python -m scripts.device_simulator --device-id 1 --token <token of Rivera's shirt>
+python -m scripts.device_simulator --device-id 1 --token <token> --spike   # ramps up to ~110 bpm in ~30 s
+```
+It sends one heart rate reading every 5 s (`--interval`), with small noise around the latest value, to
+`--api` (default `http://localhost:8000`; on Windows, `http://127.0.0.1:8000` avoids a slow IPv6 fallback).
+`--spike` crosses the documented AHA threshold (100 bpm) to show a live critical alert. Ctrl+C stops it.
+
+### Demo: live devices
+
+Device status in the UI: **Live** (reading in the last 2 min), **Synced · 1 h ago** (last 24 h),
+**Not synced for 26 h** (24 h or more), **Never synced**.
+
+To make the smart shirts stream without running a separate script, start the backend with
+`HP_SIMULATE_DEVICES=1`: every 5 s, each `smart_shirt` device sends a **simulated** heart rate (small noise
+around its latest value), through the same validation as `POST /devices/{id}/readings`. It is off by default
+and always off in tests.
+
+```powershell
+# Windows PowerShell, from backend/
+$env:HP_SIMULATE_DEVICES = "1"
+uvicorn app.main:app --reload --port 8000
+Remove-Item Env:HP_SIMULATE_DEVICES   # afterwards, to turn it off for this terminal
+```
+```bash
+# macOS / Linux
+HP_SIMULATE_DEVICES=1 uvicorn app.main:app --reload --port 8000
+```
+
+To show a critical alert live, use the external simulator with `--spike` on a shirt (see above). Run it with
+live mode **off**, otherwise the two sources send heart rates to the same shirt at the same time.
 
 ## Input validation
 

@@ -10,7 +10,6 @@ from app.analysis.autonomy import autonomy_state
 from app.analysis.checks import compute_checks
 from app.config import autonomy_rule, environments, indicators
 from app.models import AutonomyAction, ReportStep, ReportTransmission
-from tests.test_api import client  # noqa: F401  (fixture)
 
 RIVERA, TANAKA, MOREAU = 1, 2, 3
 

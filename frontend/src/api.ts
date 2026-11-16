@@ -1,5 +1,5 @@
 import type {
-  Astronaut, AutonomyResponse, ChecksResponse, EnvironmentConfig, IndicatorMeta, Measurement, StatusResponse,
+  Astronaut, AutonomyResponse, ChecksResponse, Device, EnvironmentConfig, IndicatorMeta, Measurement, StatusResponse,
 } from './types'
 
 const BASE = '/api'
@@ -20,6 +20,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   astronauts: () => request<Astronaut[]>('/astronauts'),
   status: (id: number) => request<StatusResponse>(`/astronauts/${id}/status`),
+  devices: (id: number) => request<Device[]>(`/astronauts/${id}/devices`),
   checks: (id: number) => request<ChecksResponse>(`/astronauts/${id}/checks`),
   indicators: () => request<Record<string, IndicatorMeta>>('/indicators'),
   measurements: (id: number, indicator: string) =>

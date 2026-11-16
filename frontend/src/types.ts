@@ -15,7 +15,37 @@ export interface Measurement {
   indicator: string
   value: number
   timestamp: string
-  source: 'simulated' | 'manual'
+  source: 'simulated' | 'manual' | 'device'
+  device_id: number | null
+  device_name: string | null
+}
+
+/** Where the latest value of an indicator comes from. */
+export interface LastSource {
+  type: 'simulated' | 'manual' | 'device'
+  device_name: string | null
+}
+
+/** A paired device. Every device in this app is SIMULATED; the API never returns its token. */
+export interface Device {
+  id: number
+  kind: string
+  name: string
+  simulated: boolean
+  last_seen: string | null
+  /** live: < 2 min · synced: < 24 h · stale: ≥ 24 h · never: no reading yet */
+  status: 'live' | 'synced' | 'stale' | 'never'
+  indicators: string[]
+  /** Latest reading this device sent for each indicator it supports. */
+  latest: DeviceReading[]
+}
+
+export interface DeviceReading {
+  indicator: string
+  label: string
+  unit: string
+  value: number
+  timestamp: string
 }
 
 export interface IndicatorStatus {
@@ -29,6 +59,7 @@ export interface IndicatorStatus {
   trend: 'up' | 'down' | 'stable'
   reasons: string[]
   last_timestamp: string | null
+  last_source: LastSource | null
 }
 
 /** Earth-independent mode block (backend/app/analysis/autonomy.py). */

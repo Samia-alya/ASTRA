@@ -1,3 +1,4 @@
+import { parseUtc } from './time'
 import type { Measurement } from './types'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -73,4 +74,67 @@ export function periodStats(measurements: Measurement[], days: number): PeriodSt
   const change =
     current.average !== null && previous.average !== null ? current.average - previous.average : null
   return { current, previous, change }
+}
+
+// --- Whole-mission view -------------------------------------------------------------------------
+// Mission day of a timestamp: the latest measurement is on day `missionDay` (today), one day per
+// 24 h before it. Fractional, so several readings within a day keep their order.
+
+export interface DayValue {
+  day: number
+  value: number
+}
+
+export function missionDayAt(ts: string, latest: number, missionDay: number): number {
+  return missionDay - (latest - parseUtc(ts)) / DAY_MS
+}
+
+function latestTs(measurements: Measurement[]): number {
+  return Math.max(...measurements.map((m) => parseUtc(m.timestamp)))
+}
+
+/** One mean per mission day (so many device readings in one day count as one day). */
+export function dailyMeans(measurements: Measurement[], missionDay: number): DayValue[] {
+  if (!measurements.length) return []
+  const latest = latestTs(measurements)
+  const byDay = new Map<number, number[]>()
+  for (const m of measurements) {
+    const day = Math.round(missionDayAt(m.timestamp, latest, missionDay))
+    if (day < 1) continue // before the mission started
+    byDay.set(day, [...(byDay.get(day) ?? []), m.value])
+  }
+  return [...byDay.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([day, vs]) => ({ day, value: vs.reduce((x, y) => x + y, 0) / vs.length }))
+}
+
+/** Trailing rolling mean over `window` mission days (days without data are skipped). */
+export function rollingMean(daily: DayValue[], window = 7): DayValue[] {
+  return daily.map(({ day }) => {
+    const inWindow = daily.filter((d) => d.day > day - window && d.day <= day)
+    return { day, value: inWindow.reduce((x, d) => x + d.value, 0) / inWindow.length }
+  })
+}
+
+export interface MissionStats {
+  average: number | null
+  /** Days 1–14. */
+  firstTwoWeeks: number | null
+  /** The last 14 mission days. */
+  lastTwoWeeks: number | null
+  /** lastTwoWeeks − firstTwoWeeks, or null when either is missing. */
+  change: number | null
+}
+
+export function missionStats(measurements: Measurement[], missionDay: number): MissionStats {
+  const daily = dailyMeans(measurements, missionDay)
+  const mean = (xs: DayValue[]) => (xs.length ? xs.reduce((a, d) => a + d.value, 0) / xs.length : null)
+  const firstTwoWeeks = mean(daily.filter((d) => d.day <= 14))
+  const lastTwoWeeks = mean(daily.filter((d) => d.day > missionDay - 14))
+  return {
+    average: mean(daily),
+    firstTwoWeeks,
+    lastTwoWeeks,
+    change: firstTwoWeeks !== null && lastTwoWeeks !== null ? lastTwoWeeks - firstTwoWeeks : null,
+  }
 }

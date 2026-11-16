@@ -20,7 +20,9 @@ from app.config import indicators
 from app.database import engine, init_db
 from app.models import Astronaut, AutonomyAction, Device, Measurement, ReportStep, ReportTransmission
 
-DAYS = 30
+MISSION_DAY = 87   # every crew member is on mission day 87
+DAYS = MISSION_DAY  # history covers the whole mission so far (day 1 ... day 87)
+RECENT_DAYS = 30    # the last 30 days keep the original random stream: same demo story as before
 SEED = 42
 
 # Simulation centre values and noise (synthetic, for the demo only).
@@ -76,6 +78,9 @@ def seed(db_engine: Engine) -> list[tuple[int, str, str, str]]:
     devices as (id, astronaut name, device name, token).
     """
     rng = np.random.default_rng(SEED)  # same demo story on every run
+    # Earlier mission days use their own stream, so the last RECENT_DAYS days get exactly the same
+    # values as before the history was extended (the analysis only looks at recent weeks anyway).
+    early_rng = np.random.default_rng(SEED + 1)
     # Last simulated point = 1 hour ago, so new manual entries are always the most recent.
     end = datetime.now(timezone.utc).replace(second=0, microsecond=0) - timedelta(hours=1)
     start = end - timedelta(days=DAYS - 1)
@@ -92,7 +97,8 @@ def seed(db_engine: Engine) -> list[tuple[int, str, str, str]]:
         s.exec(delete(Astronaut))
         created: list[tuple[str, Device]] = []
         for a in ASTRONAUTS:
-            astro = Astronaut(name=a["name"], mission=a["mission"], environment=a["environment"], mission_day=87)
+            astro = Astronaut(name=a["name"], mission=a["mission"], environment=a["environment"],
+                              mission_day=MISSION_DAY)
             s.add(astro)
             s.flush()
             # Devices use `secrets`, not `rng`, so the simulated values stay identical.
@@ -107,8 +113,9 @@ def seed(db_engine: Engine) -> list[tuple[int, str, str, str]]:
             last_reading: dict[int, datetime] = {}
             for d in range(DAYS):
                 ts = start + timedelta(days=d)
+                r = rng if d >= DAYS - RECENT_DAYS else early_rng
                 for ind, (centre, noise) in SIM.items():
-                    v = centre + rng.normal(0, noise)
+                    v = centre + r.normal(0, noise)
                     if ind in a["scenario"]:
                         slope, n = a["scenario"][ind]
                         days_in = d - (DAYS - n)

@@ -106,7 +106,7 @@ def test_last_source_for_simulated_and_manual(client):
 
 def test_generator_attributes_history_to_devices(client):
     hr = client.get("/astronauts/1/measurements?indicator=heart_rate").json()
-    assert len(hr) == 30 and all(m["source"] == "device" and m["device_name"] == "Bio-Monitor shirt (simulated)" for m in hr)
+    assert len(hr) == 87 and all(m["source"] == "device" and m["device_name"] == "Bio-Monitor shirt (simulated)" for m in hr)
     sleep = client.get("/astronauts/1/measurements?indicator=sleep_hours").json()
     assert all(m["device_name"] == "Sleep band (simulated)" for m in sleep)
     sys_bp = client.get("/astronauts/1/measurements?indicator=bp_systolic").json()

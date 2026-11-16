@@ -184,3 +184,12 @@ def test_startup_seed_disabled_by_env(empty_engine, monkeypatch):
     monkeypatch.setenv("HOUSTON_PULSE_NO_SEED", "1")
     with TestClient(app) as c:
         assert c.get("/astronauts").json() == []
+
+
+def test_history_covers_the_whole_mission(client):
+    from datetime import datetime
+    for a in client.get("/astronauts").json():
+        rows = client.get(f"/astronauts/{a['id']}/measurements?indicator=mood").json()
+        ts = [datetime.fromisoformat(r["timestamp"]) for r in rows]
+        span_days = round((max(ts) - min(ts)).total_seconds() / 86400) + 1
+        assert span_days == a["mission_day"] == 87 and len(rows) == 87

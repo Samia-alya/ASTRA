@@ -17,7 +17,7 @@ import type {
   Astronaut, AutonomyResponse, ChecksResponse, Device, IndicatorMeta, IndicatorStatus, Measurement, StatusResponse,
 } from './types'
 import { fmt, LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, plainName } from './types'
-import { periodStats } from './stats'
+import { missionStats, periodStats } from './stats'
 import { sourceText, useNow } from './time'
 
 const astronauts = ref<Astronaut[]>([])
@@ -88,8 +88,13 @@ function logNow(indicator: string) {
 }
 
 // History period: lives here (not in the chart) so it survives indicator / astronaut switches.
-const PERIODS = [7, 14, 30] as const
-const periodDays = ref<number>(14)
+// 'mission' = the whole stay since day 1.
+type Period = 7 | 14 | 30 | 'mission'
+const PERIODS: Period[] = [7, 14, 30, 'mission']
+const period = ref<Period>(14)
+const periodDays = computed(() => (period.value === 'mission' ? 30 : period.value))
+const isMission = computed(() => period.value === 'mission')
+const missionDay = computed(() => status.value?.astronaut.mission_day ?? null)
 
 const reportOpen = ref(false)
 
@@ -166,14 +171,16 @@ const stats = computed(() => periodStats(history.value, periodDays.value))
 function withUnit(v: number | null, unit: string) {
   return v === null ? '—' : `${fmt(v, unit)} ${unit}`
 }
-const changeText = computed(() => {
-  const c = stats.value.change
-  const unit = sel.value?.unit ?? ''
+/** "+1.2 h", "−0.6 h", "0 h", or "—" */
+function signedText(c: number | null, unit: string) {
   if (c === null) return '—'
   const abs = fmt(Math.abs(c), unit)
   const sign = Number(abs) === 0 ? '' : c > 0 ? '+' : '−'
   return `${sign}${abs} ${unit}`
-})
+}
+const changeText = computed(() => signedText(stats.value.change, sel.value?.unit ?? ''))
+const mStats = computed(() => missionStats(history.value, missionDay.value ?? 1))
+const changeColor = computed(() => (!sel.value || sel.value.level === 'no_data' ? undefined : LEVEL_COLOR[sel.value.level]))
 const rangeText = computed(() => {
   const { min, max } = stats.value.current
   const unit = sel.value?.unit ?? ''
@@ -389,12 +396,31 @@ watch(selected, loadHistory)
           <li v-for="r in sel.reasons" :key="r">{{ r }}</li>
         </ul>
         <div class="periods" role="group" aria-label="History period">
-          <button v-for="d in PERIODS" :key="d" type="button" :aria-pressed="periodDays === d"
-            @click="periodDays = d">{{ d }} days</button>
+          <button v-for="p in PERIODS" :key="p" type="button" :aria-pressed="period === p"
+            @click="period = p">{{ p === 'mission' ? 'Mission' : `${p} days` }}</button>
         </div>
         <HistoryChart :data="history" :label="sel.label" :unit="sel.unit" :baseline="sel.baseline"
-          :color="LEVEL_COLOR[sel.level]" :days="periodDays" />
-        <dl class="stats">
+          :color="LEVEL_COLOR[sel.level]" :days="periodDays" :mission-day="isMission ? missionDay : null" />
+        <dl v-if="isMission" class="stats">
+          <div>
+            <dt>Mission average</dt>
+            <dd>{{ withUnit(mStats.average, sel.unit) }}</dd>
+          </div>
+          <div>
+            <dt>First 2 weeks</dt>
+            <dd>{{ withUnit(mStats.firstTwoWeeks, sel.unit) }}
+              <small v-if="mStats.firstTwoWeeks === null">not enough data</small></dd>
+          </div>
+          <div>
+            <dt>Last 2 weeks</dt>
+            <dd>{{ withUnit(mStats.lastTwoWeeks, sel.unit) }}</dd>
+          </div>
+          <div>
+            <dt>Change</dt>
+            <dd :style="{ color: changeColor }">{{ signedText(mStats.change, sel.unit) }}</dd>
+          </div>
+        </dl>
+        <dl v-else class="stats">
           <div>
             <dt>Average (last {{ periodDays }} days)</dt>
             <dd>{{ withUnit(stats.current.average, sel.unit) }}</dd>
@@ -406,7 +432,7 @@ watch(selected, loadHistory)
           </div>
           <div>
             <dt>Change</dt>
-            <dd :style="{ color: sel.level === 'no_data' ? undefined : LEVEL_COLOR[sel.level] }">{{ changeText }}</dd>
+            <dd :style="{ color: changeColor }">{{ changeText }}</dd>
           </div>
           <div>
             <dt>Range</dt>

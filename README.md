@@ -48,7 +48,9 @@ Space context for each indicator comes from the [NASA Human Research Program ris
 
 ## Demo data
 
-`backend/scripts/generate_data.py` creates 30 days of **simulated** data for three crew members.
+`backend/scripts/generate_data.py` creates **simulated** data for the whole mission so far (day 1 to day 87,
+one reading per indicator per day) for three crew members. The demo scenarios only change the last days; the
+history chart's **Mission** view shows the whole stay (mission days, daily values + 7-day rolling average).
 The backend generates it automatically on startup when the database is empty; existing data
 (including manual entries) is never overwritten.
 
